@@ -1,6 +1,6 @@
 # -*- coding: Shift_JIS -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.2.8 (2014.8.15)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.2.9 (2014.9.18)            #
 #                                                                                #
 #                           HTLM生成、FTP送信編                                  #
 #                                                                                #
@@ -190,11 +190,19 @@ def make_html()
     f.sub!(/<!--madoguchiTopics-->/)      {|str| topic} if topic
     f.sub!(/<!--TIME-->/)                 {|str| genzai}
     $mado_array.each do |mado|
-      f.sub!(/<!--#{mado}-BANGO-->/)      {|str| hp_data_bango(mado)}
-      f.sub!(/<!--#{mado}-NINZU-->/)      {|str| hp_data_machi_ninzu(mado)}
-      f.sub!(/<!--#{mado}-MESSAGE-->/)    {|str| hp_data_message(mado)}
-      f.sub!(/<!--#{mado}-SANKO-Title-->/){|str| hp_data_graph(mado)[:title]}
-      f.sub!(/<!--#{mado}-SANKO-->/)      {|str| hp_data_graph(mado)[:data]}
+      unless Today.closed_mado.include? mado
+        f.sub!(/<!--#{mado}-BANGO-->/)      {|str| hp_data_bango(mado)}
+        f.sub!(/<!--#{mado}-NINZU-->/)      {|str| hp_data_machi_ninzu(mado)}
+        f.sub!(/<!--#{mado}-MESSAGE-->/)    {|str| hp_data_message(mado)}
+        f.sub!(/<!--#{mado}-SANKO-Title-->/){|str| hp_data_graph(mado)[:title]}
+        f.sub!(/<!--#{mado}-SANKO-->/)      {|str| hp_data_graph(mado)[:data]}
+      else
+        f.sub!(/<!--#{mado}-BANGO-->/)      {|str| "－"}
+        f.sub!(/<!--#{mado}-NINZU-->/)      {|str| "－"}
+        f.sub!(/<!--#{mado}-MESSAGE-->/)    {|str| $close_message[:pc]}
+        f.sub!(/<!--#{mado}-SANKO-Title-->/){|str| ""}
+        f.sub!(/<!--#{mado}-SANKO-->/)      {|str| ""}
+      end
     end
     File.write(Myfile.dir(:temp)+"/"+Myfile.file_name(h),f)
     files << Myfile.dir(:temp)+"/"+Myfile.file_name(h)
@@ -252,6 +260,9 @@ def 業務終了処理
 
   #***** 推移のhtml *****
   require './suii'
+  #過去ログファイルに欠落があるとき修復する。
+  days_of_this_week=Today.days_of_week
+  Kakolog.repair(days_of_this_week) if Kakolog.lack_of_kako_log(days_of_this_week)
   #公開用ページ
   if defined? $suii_open and $suii_open==:yes
     files=make_html_of_week(Today)

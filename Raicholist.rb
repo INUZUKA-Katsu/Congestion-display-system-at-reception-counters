@@ -1,6 +1,6 @@
 # -*- coding: Shift_JIS -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.2.8 (2014.8.15)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.2.9 (2014.9.18)            #
 #                                                                                #
 #        <<オブジェクト定義、ユーティリティメソッド及びオプション機能>>          #
 #                                                                                #
@@ -19,7 +19,7 @@ require "logger"
 require 'nkf'
 require 'net/smtp'
 require "date"
-
+require "./holiday_japan"
 
 #*** マイドキュメントフォルダ ***
 wsh = WIN32OLE.new('WScript.Shell')
@@ -109,8 +109,9 @@ class ConfigSet
     ans << "$gyomu"               unless $gyomu.values.sort==mado_array
     ans << "$teitai_kyoyou_jikan" unless $teitai_kyoyou_jikan.keys.sort==mado_array
     mado=[]
-    $jam_message.each_line do |l|
-      mado << $& if l=~/^\d+/
+    $jam_message.each_line do |line|
+      next if line =~ /窓口.*待ち人数.*メッセージ/
+      mado << $& if line =~ /[^\s]+/
     end
     ans << "$jam_message"         unless mado.uniq.sort==mado_array
     unless ans==[]
@@ -499,6 +500,74 @@ class String
       self
     end
   end
+  def nan_yobi
+    return nil unless self.match(/^\d{8}$/)
+    "#{Time.parse(self).yobi}曜日"
+  end
+  def rinji_kaichobi?
+    return nil unless self.match(/^\d{8}$/)
+    $rinji_kaichobi.include? self
+  end
+  def syukujitu?
+    return nil unless self.match(/^\d{8}$/)
+    Date.parse(self).national_holiday?
+  end
+  def week_num
+    return nil unless self.match(/^\d{8}$/)
+    (self[6,2].to_i-1)/7+1
+  end
+  def dai_nan_yobi
+    return nil unless self.match(/^\d{8}$/)
+    "第#{week_num.to_s}#{self.nan_yobi}"
+  end
+  def variation
+    return nil unless self.match(/^\d{8}$/)
+    v=[self,self.nan_yobi,self.dai_nan_yobi,self.dai_nan_yobi.num_to_zenkaku]
+    if $rinji_kaichobi.include? self
+      v << "臨時開庁日"
+    end
+    v
+  end
+  #例外として開けない窓口の窓口番号配列
+  def closed_mado
+    return [] unless $closed_mado
+    cdays=Array.new
+    $closed_mado.each_line do |line|
+      cdays << line.chomp.gsub(/("|　)/,"").split
+    end
+    cdays.select{|d| self.variation.include? d[0]}.map{|d| d[1]}.uniq
+  end
+  def kaichobi?
+    return nil unless self.match(/^\d{8}$/)
+    if $rinji_kaichobi.include? self
+      true
+    elsif $heichobi_nenmatsu_nenshi.include? self[4,4]
+      false
+    elsif self.syukujitu? and
+          ($heichobi_syukujitu.include? self.nan_yobi or
+           $heichobi_syukujitu.include? self.dai_nan_yobi or
+           $heichobi_syukujitu.include? self.dai_nan_yobi.num_to_zenkaku)
+      false
+    elsif $kaichobi.include?  self.nan_yobi or
+          $kaichobi.include?  self.dai_nan_yobi or
+          $kaichobi.include?  self.dai_nan_yobi.num_to_zenkaku
+      true
+    else
+        false
+    end
+  end
+  def heichobi?
+    ! self.kaichobi?
+  end
+  def kakusyu_kaichobi?
+    kakusyu_kaichobi=$kaichobi.select{|day| day=~/第.*曜日/}
+    today=self.variation.select{|day| day=~/第.*曜日/}
+    unless kakusyu_kaichobi & today == []
+      true
+    else
+      false
+    end
+  end
 end
 
 
@@ -553,21 +622,6 @@ class Time
   end
   def to_yymmdd
     self.strftime("%Y%m%d")
-  end
-  #第何曜日か。戻り値の例:「第4土」
-  def dai_nan_yobi
-    nan  =(strftime("%d").to_i-1)/7+1
-    "第#{nan.to_s}#{yobi}"
-  end
-  #開庁日・閉庁日の判定
-  def kaichobi?
-    kaicho=true if $kaichobi.find{|d| d[0]==yobi or d[0,3].num_to_hankaku==dai_nan_yobi}
-    if $syukujitsu_hantei and to_date.national_holiday?
-      kaicho=false if $heichobi_syukujitu.find{|d| d[0]==yobi or d[0,3].num_to_hankaku==dai_nan_yobi}
-    end
-    kaicho=false if $heichobi_nenmatsu_nenshi.include? strftime("%m%d")
-    kaicho=true if $rinji_kaichobi.include? self.to_yymmdd
-    kaicho||=false
   end
   #$test_mode=2,3,4,5の場合の現在時
   class << Time; alias real_now now; end
@@ -753,7 +807,7 @@ class VcallMonitor
       while Time.now<start_time+time_before_shutdown
         sleep 1
       end
-      `shutdown.exe -s -f -t 5`
+      `shutdown.exe /s /f /t 5`
     else
       popup "シャットダウンまでのカウントダウンを中止しました。"
     end
@@ -991,9 +1045,9 @@ class KaichoJikan
   def self.yobi_jikan
 	  return @@yobi_jikan if @@yobi_jikan
 	  @@yobi_jikan=Hash.new
-	  $kaicho_jikan.each_line do |l|
-      next if l.match(/^(\s+|)$/)
-	    ary=l.strip.chomp.split(/\s+/)
+	  $kaicho_jikan.each_line do |line|
+      next if line.match(/^\s*$/)
+	    ary=line.chomp.gsub("　","").split
       unless ary[1].match(/\d\d?:\d\d?～\d\d?:\d\d?/)
 	      config_error
       end
@@ -1099,7 +1153,7 @@ class MeyasuMachijikan
   def self.parse(string)
     ary=[]
     string.each_line do |line|
-     ary.push(line.chomp.split())
+     ary << line.chomp.gsub("　","").split
     end
     self.new(ary)
   end
@@ -1871,35 +1925,44 @@ def make_xlsx(log)
   str   += "窓口,番号,発券時待ち人数,発券時刻→呼出時刻,待ち時間\n"
   str   += $monitor_data[3]
   temp   = Myfile.dir(:temp)+"/temp.csv"
-  File.write(temp,str)
-  xl = WIN32OLE.new('Excel.Application')
-  book = xl.Workbooks.Open(temp)
-  #xl.visible=true
-  
-  book.ActiveSheet.Columns("A").ColumnWidth = 8.38  
-  book.ActiveSheet.Columns("B").ColumnWidth = 8.38
-  book.ActiveSheet.Columns("C").ColumnWidth = 14.25
-  book.ActiveSheet.Columns("D").ColumnWidth = 18.63
-  book.ActiveSheet.Columns("E").ColumnWidth = 8.38
-  
-  book.ActiveSheet.Range("B8").CurrentRegion.HorizontalAlignment = -4108
-  
-  (7..12).each do |i|
-    book.ActiveSheet.Range("B8").CurrentRegion.Borders(i).LineStyle = 1
-    book.ActiveSheet.Range("B8").CurrentRegion.Borders(i).ColorIndex = 0
-    book.ActiveSheet.Range("B8").CurrentRegion.Borders(i).TintAndShade = 0
-    book.ActiveSheet.Range("B8").CurrentRegion.Borders(i).Weight = 2
-  end
-  
-  book.ActiveSheet.PageSetup.PrintTitleRows = "$1:$1"
+  begin
+    File.write(temp,str)
+    xl = WIN32OLE.new('Excel.Application')
+    book = xl.Workbooks.Open(temp)
+    #xl.visible=true
+    
+    book.ActiveSheet.Columns("A").ColumnWidth = 8.38  
+    book.ActiveSheet.Columns("B").ColumnWidth = 8.38
+    book.ActiveSheet.Columns("C").ColumnWidth = 14.25
+    book.ActiveSheet.Columns("D").ColumnWidth = 18.63
+    book.ActiveSheet.Columns("E").ColumnWidth = 8.38
+    
+    book.ActiveSheet.Range("B8").CurrentRegion.HorizontalAlignment = -4108
+    
+    (7..12).each do |i|
+      book.ActiveSheet.Range("B8").CurrentRegion.Borders(i).LineStyle = 1
+      book.ActiveSheet.Range("B8").CurrentRegion.Borders(i).ColorIndex = 0
+      book.ActiveSheet.Range("B8").CurrentRegion.Borders(i).TintAndShade = 0
+      book.ActiveSheet.Range("B8").CurrentRegion.Borders(i).Weight = 2
+    end
+    
+    book.ActiveSheet.PageSetup.PrintTitleRows = "$1:$1"
 
-  xl.Application.DisplayAlerts = "False"
-  book_name="#{MYDOC}/窓口待ち状況(#{Time.parse(Today).strftime('%Y-%m-%d')}).xlsx"
-  book.SaveAs("Filename"=>book_name,"FileFormat"=>51, "CreateBackup"=>"False")
-  book.Close("False")
-  xl.Application.DisplayAlerts = "True"
-  xl.Quit
-  if Myfile.dir(:excel)
-    FileUtils.cp_r(book_name,Myfile.dir(:excel),{:preserve => true})
+    xl.Application.DisplayAlerts = "False"
+    book_name="#{MYDOC}/窓口待ち状況(#{Time.parse(Today).strftime('%Y-%m-%d')}).xlsx"
+    book.SaveAs("Filename"=>book_name,"FileFormat"=>51, "CreateBackup"=>"False")
+    book.Close("False")
+    xl.Application.DisplayAlerts = "True"
+    xl.Quit
+    if Myfile.dir(:excel)
+      FileUtils.cp_r(book_name,Myfile.dir(:excel),{:preserve => true})
+    end
+  rescue
+    #原因不明であるが、環境によってはOLEオートメーションのアクセスを拒否される場合がある。
+    #その場合の代替処理として、同じ内容のcsvファイルを保存する。
+    csv_name="#{Myfile.dir(:excel)}/窓口待ち状況(#{Time.parse(Today).strftime('%Y-%m-%d')}).csv"
+    if Myfile.dir(:excel)
+      FileUtils.cp_r(temp,csv_name)
+    end
   end
 end

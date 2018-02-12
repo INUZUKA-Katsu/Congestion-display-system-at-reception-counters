@@ -54,6 +54,20 @@ $teitai_kyoyou_jikan["8"]=15
 $teitai_kyoyou_jikan["9"]=30
 $teitai_kyoyou_jikan["13"]=30
 
+# 例外的に開けない窓口
+#「指定日  窓口番号」の形式で指定してください。
+# 指定日："○曜日","第○曜日","臨時開庁日","yyyymmdd"(８桁数字による日付)のいずれか
+# 例外なくすべての窓口を開く場合は、$closed_mado = <<EOS～EOSの行をコメントアウトしてください。
+$closed_mado = <<EOS
+  土曜日      13
+  臨時開庁日  13
+EOS
+
+#例外的に開けない窓口の備考欄の表示
+$close_message = Hash.new
+$close_message[:pc]   = "本日は７番窓口でお受付けします。"
+$close_message[:suii] = "土曜日は７番窓口で一緒にお受付けします。"
+
 #***** FTPアカウント *****
 $account = "xxxxxxxxxx"
 

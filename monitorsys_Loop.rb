@@ -138,8 +138,10 @@ module AtRaise
 end
 #例外による終了時の処理
 END{
-  AtRaise.send_mail_by_situation
-  AtRaise.write_log
+  unless $ku.heicho < Time.now.to_hhmm
+    AtRaise.send_mail_by_situation
+    AtRaise.write_log
+  end
 }
 
 #********************  モニタシステム起動  ***********************
@@ -173,8 +175,8 @@ p "2nd stage"
 loop do
   sleep 30
   p Time.now
-#  next  if $ku.kaicho > Time.now.to_hhmm                           # 開庁時間前は何もせず待機
-  break if $ku.heicho < Time.now.to_hhmm                            # 閉庁時間後は終了
+  next  if $ku.kaicho > Time.now.to_hhmm                           # 開庁時間前は何もせず待機
+  break if $ku.heicho < Time.now.to_hhmm                           # 閉庁時間後は終了
   case $vcall.data_communication_with_hakkenki                      # 発券機との通信状況を確認する。
   when "通信中"
     next
