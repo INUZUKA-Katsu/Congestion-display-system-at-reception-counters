@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.4 (2016.3.8)             #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.42 (2016.9.7)            #
 #                                                                                #
 #        <<オブジェクト定義、ユーティリティメソッド及びオプション機能>>          #
 #                                                                                #
@@ -786,7 +786,17 @@ class VcallMonitor
         false
       end
     rescue
-      nil
+      #64bi版Windowsと32bit版Rubyの組合せでは quser はエラーになる。
+      #エラーになったときは、ログイン後に常駐するrbファイルのプロセスの有無で判定する(2016.9.7)。
+      is_running_rb
+    end
+  end
+  def is_running_rb
+    if process_id("watch_running_ruby_program.rb") or process_id("mado_Loop.rb") or process_id("monitorsys_Loop.rb")
+      @login_time=Time.now.to_hhmm
+      true
+    else
+      false
     end
   end
   #***** Windowsのイベントログの設定(おまけ) *****
@@ -2275,32 +2285,6 @@ def log_data_backup(option=:and_erase)
       File.write(Myfile.file(:log) , "") 
     end
   end
-  log_data_nendo_koshin
-end
-
-
-#***** ログファイル廃棄 *****
-#      文書廃棄に準じて２年以上経過したログファイルを削除する 
-def log_data_nendo_koshin
-#  require "date"
-  y=(Date.today << 3).year-2
-  kijunbi_jan="#{y.to_s}年4月1日"
-  kijunbi_ymd=Date.new(y,4,1).strftime("%Y%m%d")
-  dir=Dir.open(Myfile.dir(:kako_log))
-    x=true
-    while name=dir.read
-      if name=~/(\d{8})\.log/
-        if $1<kijunbi_ymd
-          if x==true
-            x=false
-            ans=popup("#{kijunbi_jan}より古いファイルを削除してもいいですか？","ログファイル削除",3)
-            break if ans!=6
-          end
-          File.delete Myfile.dir(:kako_log)+"/"+name
-        end
-      end
-    end
-  dir.close
 end
 
 
@@ -2355,3 +2339,4 @@ def make_xlsx(logs)
     end
   end
 end
+
