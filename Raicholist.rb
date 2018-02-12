@@ -1,11 +1,11 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.42 (2016.9.7)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.43 (2017.6.24)                  #
 #                                                                                #
-#        <<オブジェクト定義、ユーティリティメソッド及びオプション機能>>          #
+#        <<オブジェクト定義、ユーティリティメソッド及びオプション機能>>                    #
 #                                                                                #
-#                        作成    犬塚  克 ( ka00-inuzuka@city.yokohama.jp )      #
-#                        著作権  横浜市                                          #
+#                        作成    犬塚  克 ( ka00-inuzuka@city.yokohama.jp )        #
+#                        著作権  横浜市                                            #
 #--------------------------------------------------------------------------------#
 
 Encoding.default_external="Windows-31J"
@@ -207,7 +207,7 @@ class ConfigSet
         FileUtils.cp(kako_log, Myfile.file(:log))
         log_events=LogEvents.setup(file,Today,:prior_check)
       else
-        popup "テスト用のログファイル「#{file}」には、テスト用日付 #{$datetime.match(/\d{4}\/\d\d?\/\d\d?/)} のデータがありません。\n" << 
+        popup "テスト用のログファイル「#{file}」には、テスト用日付 #{$datetime.match(/\d{4}\/\d\d?\/\d\d?/)} のデータがありません。\n" <<
               "テスト用のログファイルが空でないとすれば、config.txt の $datetime をテスト用データに合わせて修正する必要があると思われます。" ,48,"エラー"
         exit
       end
@@ -245,7 +245,7 @@ end
 
 #***** エラーポップアップ＋エラーログ(最新200行を保持。カレントフォルダに作成) *****
 END{
-  def lotation(file,max_lines=200)
+  def lotation(file,max_lines=1000) #2017.6.24 記録を200行から1000行に変更
     gyo_su = 0
     f=File.read(file)
     f.each_line do
@@ -324,7 +324,7 @@ def ftp_soshin(files,dir)
       ftp.login($account,pass())
       ftp.passive = true
       ftp.binary  = false
-      ftp.chdir(dir)
+      ftp.chdir(dir) if dir #2017.6.24
     #アップロードでサーバの応答待ちになったとき５秒でタイムアウトにする。
     timeout(5){
       files.each {|file| ftp.put(file)}
@@ -372,8 +372,8 @@ def pass()
   src = File.open($ftp_pass, "r"){ |f| f.read }
   src.force_encoding("ascii-8bit")
   tmp = []
-  src.each_codepoint do |cp| 
-    tmp << (cp ^ 255) 
+  src.each_codepoint do |cp|
+    tmp << (cp ^ 255)
   end
   tmp.map{|i| i.chr}.join("")
 end
@@ -467,7 +467,7 @@ class String
     else
       "午後#{(ary[0].to_i-12).to_s}時#{ary[1]}分"
     end
-  end   
+  end
   def hour
     if self=~/^(\d\d?):\d\d$/
       $1
@@ -517,7 +517,7 @@ class String
         0
       end
     elsif self.match(/^\d{8}$/) #日付の引き算 2014.3.31付加
-      if  second.is_a? Fixnum 
+      if  second.is_a? Fixnum
         t=Date.parse(self)-second
         t.strftime("%Y%m%d")
       elsif second.is_a? String and second.match(/^\d{8}$/)
@@ -733,7 +733,7 @@ end
 
 
 class NilClass
-  #該当Raichosyaが存在しない場合を考慮せずに、Raichosyaに対するメソッドを使用可能とする。  
+  #該当Raichosyaが存在しない場合を考慮せずに、Raichosyaに対するメソッドを使用可能とする。
   [:time_h,:bango,:id,:time_y,:time_c,:machi_su,:to_a,:time,:machi_hun].each do |method|
     define_method(method) do |*arg|
       if method==:id
@@ -1001,7 +1001,7 @@ class VcallMonitor
   #***** Rubyプログラムを起動(非同期、終了を待たずに親プロセス終了) *****
   def asynchronous_call(ruby_file)
     if File.exist?(ruby_file)
-      str="#{ruby_path} #{ruby_file}"  
+      str="#{ruby_path} #{ruby_file}"
       wsh = WIN32OLE.new('WScript.Shell')
       wsh.Run(str,0,false)
       puts "「#{ruby_file}」を起動しました。"
@@ -1027,7 +1027,7 @@ class MadoSysFile
     file      = Hash.new
     dir       = Hash.new
     if $hinagata and $hinagata.class==Array  #古い設定形式のとき
-      hinagata[:pc]           =$hinagata[0]                 
+      hinagata[:pc]           =$hinagata[0]
       hinagata[:keitai]       =$hinagata[1]
       hinagata[:sumaho]       =$hinagata[2]
       hinagata[:monitor]      =$hinagata_monitor  if defined? $hinagata_monitor
@@ -1046,7 +1046,7 @@ class MadoSysFile
       file_name[:sumaho]      =$ftp_save_file[2]
       file_name[:monitor]     =$kanai_save_file if defined? $kanai_save_file
     elsif defined? $ftp_save_file and $ftp_save_file.class==Hash
-      file_name[:pc]          =$ftp_save_file[$hinagata[0]] 
+      file_name[:pc]          =$ftp_save_file[$hinagata[0]]
       file_name[:keitai]      =$ftp_save_file[$hinagata[1]]
       file_name[:sumaho]      =$ftp_save_file[$hinagata[2]]
       file_name[:monitor]     =$kanai_save_file if defined? $kanai_save_file
@@ -1069,7 +1069,7 @@ class MadoSysFile
       file_name[:suii_syasu]  =$html_file[:suii_syasu]        if keys.include? :suii_syasu
       file_name[:suii_machisu]=$html_file[:suii_machisu]      if keys.include? :suii_machisu
     end
-    file[:monitor]  =$monitor_folder+"/"+$html_file[:monitor] if defined? $html_file and $html_file[:monitor]
+    file[:monitor]  =$monitor_folder+"/"+$html_file[:monitor] if $monitor_folder and defined? $html_file and $html_file[:monitor]
     file[:log]      =$vcall_data                    if $vcall_data
     file[:log]      =$vcall_data_for_test           if test_mode?(2,3,4,5) and $vcall_data_for_test
     file[:gaikyo]   =MYDOC+"/"+$gaikyo              if $gaikyo
@@ -1100,7 +1100,7 @@ class MadoSysFile
           "Desktop"           => DESKTOP }
       return path if path==nil
       path.sub(/^(#{h.keys.join("|")})/){h[$1]}
-    end  
+    end
     [hinagata,file,dir].each {|h| h.each{|k,v| h[k]=sub_mydoc(v)}}
     self.new(hinagata,file_name,file,dir)
   end
@@ -1198,7 +1198,7 @@ class KaichoJikan
     yymmdd=day.to_yymmdd
     key  =yobi_jikan.keys.find{|k| k[0]==yobi}
     key  =yymmdd if yobi_jikan.key? yymmdd
-    key||="臨時開庁日" 
+    key||="臨時開庁日"
     yobi_jikan[key]
   end
   def self.setup(today=nil)
@@ -1220,7 +1220,7 @@ class KaichoJikan
         self.parse($kaicho_jikan_rinji_kaichobi)
       else
         #臨時開庁日の開庁時間の指定がないとき土曜日の開庁時間を準用
-        self.parse($kaicho_jikan_sat) 
+        self.parse($kaicho_jikan_sat)
       end
     elsif yobi.between?(1,5)
     #平日（臨時開庁日でない月～金）
@@ -1229,7 +1229,7 @@ class KaichoJikan
     #土曜開庁日（臨時開庁日及び月～金以外）
       self.parse($kaicho_jikan_sat)
     end
-  end  
+  end
   def self.parse(str)
     kai,hei = str.split("～")
     kaicho = Time.parse(kai).strftime("%H:%M")
@@ -1290,7 +1290,7 @@ class MeyasuMachijikan
     #          登録されていない場合のエラーを回避する処理を追加。
     begin
       @jamm_mess_ary.find{|m,n,mess| m==mado and n.to_i<=machisu}[2]
-    rescue  
+    rescue
       ""
     end
   end
@@ -1362,7 +1362,7 @@ class LogEvents
     return false if mode==:prior_check                 #事前チェックのときはとりあえず全て読み込む
     return true unless test_mode?                      #本番ではエラーデータはスキップして読込継続
     #テストモードのときはエラーメッセージを表示して実行中断する。
-    data_error(log_file,mado,bango) 
+    data_error(log_file,mado,bango)
   end
   #*** テストモードのときの警告表示。
   def self.data_error(log_file,mado,bango)
@@ -1407,7 +1407,7 @@ end
 
 
 #*** 来庁者クラス ***
-class RaichoSya  
+class RaichoSya
   attr_accessor :time_h, :bango, :id, :time_y, :time_c,  :machi_su
   def initialize(time_h=nil, bango="－", id=0, time_y=nil, time_c=nil, machi_su="…")
     @time_h = time_h
@@ -1509,7 +1509,7 @@ class RaichoList
     logs=Hash.new
     log_file=nil if File.exist?(log_file)==false
     mado_array.each do |mado|
-      logs[mado] = self.new(log_file,mado,day)      
+      logs[mado] = self.new(log_file,mado,day)
       @@list << logs[mado]
     end
     events=LogEvents.setup(log_file,day)
@@ -1531,7 +1531,7 @@ class RaichoList
     end
     logs
   end
-  #※※※※※※※※※ ↓セットアップ用メソッド↓ ※※※※※※※※※※※※※  
+  #※※※※※※※※※ ↓セットアップ用メソッド↓ ※※※※※※※※※※※※※
   #*** 新しい来庁者オブジェクトを追加する ***
   #*** (飛び番号があったときは補完する)   ***
   def add_raichosya(bango,time_hakken=nil,time_yobidashi=nil,time_cancel=nil)
@@ -1612,8 +1612,8 @@ class RaichoList
       sya.machi_su = self.machi_su(sya.id) if sya.time(:hakken)
     end
   end
-  
-  
+
+
   #※※※※※※※※※※  基礎ツール的メソッド ※※※※※※※※※※※※
   def add_list(list)
     @raicholist=list
@@ -1652,7 +1652,7 @@ class RaichoList
   end
 
   #※※※※※※※※※※  来庁者リストの部分集合 ※※※※※※※※※※※※※※
-  
+
   #*** 発券時刻と呼出し時刻のある来庁者の来庁者リストオブジェクト（2014.3.31付加） ***
   def complete
     self.select{|sya| sya.time(:hakken)!=nil and sya.time(:yobidashi)!=nil}
@@ -1666,9 +1666,9 @@ class RaichoList
     self.reject{|sya| sya.id==id}
   end
 
-  
+
   #※※※※※※※※※※  特定の来庁者オブジェトを返す ※※※※※※※※※※※※
-  
+
   #*** 指定id番号(id=-1のときは最終id)の来庁者オブジェクト ***
   def [](id)
     return self.max_by{|sya| sya.id} if id==-1
@@ -1685,16 +1685,16 @@ class RaichoList
   end
   def yobidashi_sya_just_before(time=TimeNow)
       current(:yobidashi,time)
-  end  
+  end
   #*** 次に呼び出す予定の来庁者オブジェクト ***
   def next_call(time=TimeNow)
     id=self.yobidashi_sya_just_before(time).id
     sya=self.find{|sya| sya.id>id and sya.time(:yobidashi)==nil and sya.time(:cancel)==nil}
 #    sya ? sya : RaichoSya.new
   end
-  
+
   #※※※※※※※※※※  人数を調べる ※※※※※※※※※※※※
-  
+
   #*** 指定時刻の待ち人数 ***
   def machi_su(time_or_id=TimeNow)
     case time_or_id
@@ -1785,7 +1785,7 @@ class RaichoList
     end
     su
   end
-  #*** 指定時刻における全窓口の合計待ち人数 ***  
+  #*** 指定時刻における全窓口の合計待ち人数 ***
   def self.machi_su(time=TimeNow)
     su=0
     @@list.each do |raicholist|
@@ -1800,8 +1800,8 @@ class RaichoList
   def next_machi_su
     self.next_call.machi_su
   end
-  #※※※※※※※※※※  時刻、時間を調べる ※※※※※※※※※  
-  
+  #※※※※※※※※※※  時刻、時間を調べる ※※※※※※※※※
+
   #*** 来庁者オブジェクトに記録された最終(発券/呼出/キャンセル)時刻 ***
   def last_time(kubun,time=TimeNow)
     self.select{|sya| sya.time(kubun)<=time}.max_by{|sya| sya.time(kubun)}.time(kubun)
@@ -1841,8 +1841,8 @@ class RaichoList
     end
   end
 
-  #※※※※※※※※※※  データ更新状況 ※※※※※※※※※※※※  
-  
+  #※※※※※※※※※※  データ更新状況 ※※※※※※※※※※※※
+
   #*** 指定時間以内のデータ更新（窓口別）***
   def update?(t)
     time=self.last_update_time
@@ -1866,7 +1866,7 @@ class RaichoList
   #*** 指定時間以内のログファイル更新（全窓口） ***
   def self.logfile_update_within(t)
     logfile=self.log_file
-    mtime = File.mtime(logfile) 
+    mtime = File.mtime(logfile)
     return :no_log_file    unless File.exist?(logfile)
     return self.update?(t) if test_mode?(2,3,4,5) #テスト用
     return :no_todays_file if mtime.to_date!=Date.today
@@ -1879,7 +1879,7 @@ class RaichoList
     "correct"
   end
 
-  #※※※※※※※※  グラフに使用する時間毎の情報 ※※※※※※※※※※※  
+  #※※※※※※※※  グラフに使用する時間毎の情報 ※※※※※※※※※※※
 
   #***** 毎正時の待ち人数 (2014.3.31 compare_modoを付加等)*****
   # compare_mode=:yesのときは、次の毎正時待ち時間の該当者の待ち人数を取得する。
@@ -1933,7 +1933,7 @@ class RaichoList
   end
 
 
-  #※※※※※※※※※※  その他の統計的情報 ※※※※※※※※※※※※  
+  #※※※※※※※※※※  その他の統計的情報 ※※※※※※※※※※※※
 
   #*** 平均待ち時間（分） ***
   def average_machi_hun
@@ -1984,9 +1984,9 @@ class RaichoSya
   end
   def hun(*mode)
     ary=mode.flatten
-    if    ary.include?(:ended)    ; self.express_waited_time(:hun)    
-    elsif ary.include?(:waiting)  ; self.express_waiting_time(:keika) 
-    elsif ary.include?(:excel)    ; self.express_waited_time()        
+    if    ary.include?(:ended)    ; self.express_waited_time(:hun)
+    elsif ary.include?(:waiting)  ; self.express_waiting_time(:keika)
+    elsif ary.include?(:excel)    ; self.express_waited_time()
     end
   end
 end
@@ -2193,7 +2193,7 @@ def make_monitor_html(logs)
       break if sya.id>id
       res << sya.html_bango_betsu(log.mado,:ended,:explain)
     end
-    res  
+    res
   end
   #*** ここから本処理 ****
   if Myfile.dir(:monitor)
@@ -2269,7 +2269,7 @@ def log_data_backup(option=:and_erase)
     log_file=Myfile.dir(:kako_log)+"/"+Today+".log"
     #過去ログがすでにあるときは空ファイルで上書きしてしまいデータが消滅する危険がある。
     #そこで既存のデータにnewデータを追加したうえで重複を削除する。H26.6.25
-    if File.exist? log_file 
+    if File.exist? log_file
       file=File.read(log_file)
       file.each_line do |line|
         new << line.chomp if line
@@ -2282,7 +2282,7 @@ def log_data_backup(option=:and_erase)
       FileUtils.cp_r(log_file, Myfile.dir(:log_backup), {:preserve => true})
     end
     if option==:and_erase and test_mode? == false and File.exist? log_file
-      File.write(Myfile.file(:log) , "") 
+      File.write(Myfile.file(:log) , "")
     end
   end
 end
@@ -2292,7 +2292,7 @@ end
 def make_xlsx(logs)
   str    = "#{Today.day_to_jan}の窓口状況\n\n"
   $mado_array.each do |mado|
-    str << "#{mado}番窓口: 来庁者数 #{logs[mado].sya_su.to_s}、 平均待ち時間 #{logs[mado].average_machi_hun.to_s} 分\n" 
+    str << "#{mado}番窓口: 来庁者数 #{logs[mado].sya_su.to_s}、 平均待ち時間 #{logs[mado].average_machi_hun.to_s} 分\n"
   end
   str   << "\n"
   str   << "窓口,番号,発券時待ち人数,発券時刻→呼出時刻,待ち時間\n"
@@ -2303,21 +2303,21 @@ def make_xlsx(logs)
     xl = WIN32OLE.new('Excel.Application')
     book = xl.Workbooks.Open(temp)
 #xl.visible=true
-    book.ActiveSheet.Columns("A").ColumnWidth = 8.38  
+    book.ActiveSheet.Columns("A").ColumnWidth = 8.38
     book.ActiveSheet.Columns("B").ColumnWidth = 8.38
     book.ActiveSheet.Columns("C").ColumnWidth = 14.25
     book.ActiveSheet.Columns("D").ColumnWidth = 18.63
     book.ActiveSheet.Columns("E").ColumnWidth = 8.38
-    
+
     book.ActiveSheet.Range("B8").CurrentRegion.HorizontalAlignment = -4108
-    
+
     (7..12).each do |i|
       book.ActiveSheet.Range("B8").CurrentRegion.Borders(i).LineStyle = 1
       book.ActiveSheet.Range("B8").CurrentRegion.Borders(i).ColorIndex = 0
       book.ActiveSheet.Range("B8").CurrentRegion.Borders(i).TintAndShade = 0
       book.ActiveSheet.Range("B8").CurrentRegion.Borders(i).Weight = 2
     end
-    
+
     book.ActiveSheet.PageSetup.PrintTitleRows = "$1:$1"
 
     xl.Application.DisplayAlerts = "False"
