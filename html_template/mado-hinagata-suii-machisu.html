@@ -14,13 +14,8 @@
 <link rel="StyleSheet" href="http://www.city.yokohama.lg.jp/hodogaya/css/contents/print.css" type="text/css" media="print">
 
 <!-- ↓保険年金課窓口混雑状況CSS↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
-<link rel="StyleSheet" href="./css/mado-new.css" type="text/css">
-<link rel="StyleSheet" href="./css/suii-new.css" type="text/css">
-<style type="text/css">
-    <!--
-        th.biko { border-right : solid 1px #fff;}
-    -->
-</style>
+<link rel="StyleSheet" href="./css/mado.css" type="text/css">
+<link rel="StyleSheet" href="./css/suii.css" type="text/css">
 <script type="text/JavaScript" src="./kyugyobi.js"></script>
 
 <!-- ↑保険年金課窓口混雑状況CSS↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ -->
@@ -70,7 +65,7 @@
 		</div>
 	</div>
 
-	<a href="http://www.city.yokohama.lg.jp/hodogaya/" name="top"><img src="http://www.city.yokohama.lg.jp/hodogaya/images/hodogaya-logo.gif" alt="保土ケ谷区ヘッダー" widht="250"></a>
+	<a href="http://www.city.yokohama.lg.jp/hodogaya/" name="top"><img src="http://www.city.yokohama.lg.jp/hodogaya/images/hodogaya-logo.gif" alt="保土ケ谷区ヘッダー" width="250"></a>
 </div>
 <!-- ↑保土ケ谷区ヘッダー -->
 
@@ -90,7 +85,7 @@
 
 
 
-<a href="http://www.city.yokohama.lg.jp/hodogaya/">トップ</a>&nbsp;&gt;&nbsp;
+<a href="http://www.city.yokohama.lg.jp/hodogaya/">トップ</a><img src="./image/space.gif" alt="">&gt;<img src="./image/space.gif" alt="">
 <!-- フォルダ非表示あり(最大5階層まで対応) -->
 <!-- 第1階層の情報取得 -->
 <!-- ↓保険年金課窓口混雑状況用ぱんくずリスト↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
@@ -113,11 +108,11 @@
 <div class="contents-block">
 
 <!-- ■■■↓ページタイトルを入力↓■■■ --><!-- ■■■ ここから1段組 ■■■ -->
-<h3></h3>
+
 
 <h4>グラフは各時刻の直前に来庁されたお客様の発券時の待ち人数を表わしています。</h4>
-<p>&nbsp;</p>
-<div style="text-align:right;">
+
+<div class="link">
 <!--local-use--><a href="mado-jokyo-suii-machisu(<!--PreviousWeek-->).html">前の週&lt;</a>
 <!--local-use-->&nbsp; 　　　　　　　　　　&nbsp;
 <!--local-use--><a href="mado-jokyo-suii-machisu(<!--NextWeek-->).html">&gt;次の週</a><br>
@@ -130,28 +125,29 @@
 
 <!--TOPIC-->
 
-<table class="table_box">
+<table class="table_box" summary="今週の各曜日、窓口、時間帯ごとの待ち人数">
+  <caption>今週の各曜日の混雑状況</caption>
   <thead>
   <tr>
-    <th scope="col" nowrap class="table_box_l madoNo">窓口番号</th>
+    <th scope="col" class="table_box_l madoNo">窓口番号</th>
     <!--DAY-->
   </tr>
   </thead>
   <tbody>
   <tr class="table_box_bg">
-    <th scope="row" nowrap class="madoNo">７番</th>
+    <th scope="row" class="madoNo"><h4 class="thead">７番</h4></th>
       <!--7-SUII-->
   </tr>
   <tr class="table_box_bg">
-    <th scope="row" nowrap class="madoNo">13番</th>
+    <th scope="row" class="madoNo"><h4 class="thead">13番</h4></th>
       <!--13-SUII-->
   </tr>
   <tr class="table_box_bg">
-    <th scope="row" nowrap class="madoNo">８番</th>
+    <th scope="row" class="madoNo"><h4 class="thead">８番</h4></th>
       <!--8-SUII-->
   </tr>
   <tr class="table_box_bg">
-    <th scope="row" nowrap class="madoNo">９番</th>
+    <th scope="row" class="madoNo"><h4 class="thead">９番</h4></th>
       <!--9-SUII-->
   </tr>
   </tbody>
@@ -161,19 +157,16 @@
   <!--public-use--><a href="index.html">現在の受付番号と待ち人数にもどる</a>
   <!--local-use--><a href="../現在受付中番号のお客様の状況.html">モニター画面（現在受付中番号のお客様の状況）にもどる</a>
 </div>
-<dl class="comment">
-<dt>※「今週」について…</dt>
-<dd>今日が月曜日（週の初日）のときは先週の情報を掲載しています。</dd>
-<dt>※待ち人数について…</dt>
-<dd>各時刻に一番近い時間に来庁されたお客様が番号札をとったときの待ち人数を掲載しています。</dd>
-<dt>※受付時間について…</dt>
-<dd>月曜日から金曜日までは<strong>午前８時４５分から午後５時まで</strong>、第２・第４土曜日は<strong>午前９時から正午まで</strong>です。</dd>
-</dl>
 
-<p>【お問合せ先】<br>
-保険年金課国民年金係　TEL：045-334-6332、FAX：045-334-6334<br>
-保険年金課保険係　　　　TEL：045-334-6335、FAX：045-334-6334<br>
-</p>
+<div id="comment">
+  <h4>※待ち人数について</h4>
+    <p>各時刻に一番近い時間に来庁されたお客様が番号札をとったときの待ち人数を掲載しています。</p>
+  <h4>※受付時間について</h4>
+    <p>月曜日から金曜日までは<strong>午前８時４５分から午後５時まで</strong>、第２・第４土曜日は<strong>午前９時から正午まで</strong>です。</p>
+  <h4>【お問合せ先】</h4>
+    <p>保険年金課国民年金係　TEL：045-334-6332、FAX：045-334-6334</p>
+    <p>保険年金課保険係　　　　TEL：045-334-6335、FAX：045-334-6334</p>
+</div><!-- end  [id=comment] -->
 
 </div><!-- end  [class=contents-block] -->
 
@@ -190,7 +183,7 @@
 <address>
 
 横浜市 保土ケ谷区 保険年金課 国民年金係／保険年金課保険係
- - 2014年07月22日作成 <!-->- 2014年07月22日更新<--> <span id="res"></span><br>
+  2014年07月22日作成 - 2014年07月22日更新 <span id="res"></span><br>
 
 ご意見・お問合せ - <a href="mailto:ho-hokennenkin@city.yokohama.jp">ho-hokennenkin@city.yokohama.jp</a> - 電話: 045-334-6332 - FAX: 045-334-6334<br>
 

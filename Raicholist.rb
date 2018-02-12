@@ -1,6 +1,6 @@
-# -*- coding: Shift_JIS -*-
+# -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.2 (2015.2.20)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.4 (2016.3.8)             #
 #                                                                                #
 #        <<オブジェクト定義、ユーティリティメソッド及びオプション機能>>          #
 #                                                                                #
@@ -8,24 +8,25 @@
 #                        著作権  横浜市                                          #
 #--------------------------------------------------------------------------------#
 
-Encoding.default_external="Shift_JIS"
+Encoding.default_external="Windows-31J"
 
-require "fileutils"
+require 'fileutils'
 require 'net/ftp'
 require 'timeout'
 require 'win32ole'
 require 'time'
-require "logger"
+require 'logger'
 require 'nkf'
 require 'net/smtp'
-require "date"
-require "./holiday_japan"
+require 'date'
+require 'csv'
+require './holiday_japan'
 
 
 #*** マイドキュメントフォルダ ***
 wsh = WIN32OLE.new('WScript.Shell')
-MYDOC=wsh.SpecialFolders('MyDocuments').encode("Shift_JIS")
-DESKTOP=wsh.SpecialFolders('Desktop').encode("Shift_JIS")
+MYDOC=wsh.SpecialFolders('MyDocuments').encode("Windows-31J")
+DESKTOP=wsh.SpecialFolders('Desktop').encode("Windows-31J")
 wsh=nil
 
 
@@ -104,19 +105,33 @@ class ConfigSet
     return unless test_mode? #テストモードのときのみ実行
     return @@bango if defined? @@bango
     @@bango=true
-    mado_array=$mado_bango.split(",").sort
-    ans=[]
-    ans << "$ken_bango"           unless $ken_bango.keys.sort==mado_array
-    ans << "$gyomu"               unless $gyomu.values.sort==mado_array
-    ans << "$teitai_kyoyou_jikan" unless $teitai_kyoyou_jikan.keys.sort==mado_array
-    mado=[]
-    $jam_message.each_line do |line|
-      next if line =~ /窓口.*待ち人数.*メッセージ/
-      mado << $& if line =~ /[^\s]+/
+    if $mado_bango.class==String then
+      mado_array=$mado_bango.split(",").sort
+      # 旧バージョンとの互換性を保持(2016.3.8)
+    else
+      mado_array=$mado_bango.sort
     end
-    ans << "$jam_message"         unless mado.uniq.sort==mado_array
+    ans=[]
+    unless $ken_bango.keys.sort==mado_array
+        ans << "「発券番号の割り当て($len_bango)」"
+    end
+    unless $gyomu.values.sort==mado_array
+      ans << "「業務コードと窓口番号の対応($gyomu)」"
+    end
+    unless AlertJoken.new($keikoku_joken).keys-mado_array==[]
+      ans << "「警告条件($keikoku_joken)」"
+    end
+    if defined? $jam_message
+      mado=[]
+      $jam_message.each_line do |line|
+        next if line =~ /窓口.*待ち人数.*メッセージ/
+        mado << $& if line =~ /[^\s]+/
+      end
+      ans << "$jam_message"         unless mado.uniq.sort==mado_array
+    end
     unless ans==[]
-      popup "設定ファイルの " + ans.join("、") + " の窓口番号に不整合があります。config.txt を開いて修正してください。"
+      popup "設定ファイルの\n" + ans.join("、") + "\nの窓口番号に不整合があります。\n" +
+            "環境設定シート(又はconfig.txt)を開いて修正してください。"
       return false
     end
     @@bango
@@ -249,8 +264,8 @@ END{
   logger = Logger.new('error.log')
   logger.level = Logger::ERROR
   if $!
-    backtrace=$!.backtrace.map{|s| s.force_encoding("Shift_JIS")}.join("\n  ")
-    message=$!.message.force_encoding("Shift_JIS")
+    backtrace=$!.backtrace.map{|s| s.force_encoding("Windows-31J")}.join("\n  ")
+    message=$!.message.force_encoding("Windows-31J")
     error_mes="#{$!.class}:#{message}\n  #{backtrace}\n"
     popup(error_mes,16,"エラーのため終了します。",50) unless message=="exit"
     logger.error(error_mes)
@@ -265,7 +280,8 @@ def send_mail(title,body)
     if test_mode?(6) or $smtp_usable==nil or ($smtp_usable and $smtp_usable==true)
       to=$to_on_trial #テスト用アドレスに送信
     else
-      #テストモード6以外のとき、メール送信環境がないことを$smtp_usable=falseで明示したときはコンソールに表示
+      #テストモード6以外のとき、又はメール送信環境がないことを$smtp_usable=falseで明示したときはコンソールに表示
+      puts "(以下はテストモードで$smtp_usable=nil or falseのときの代替表示)"
       puts title
       puts body
       return :send
@@ -282,7 +298,7 @@ def send_mail(title,body)
   mail_str <<  "Content-Type: text/plain; charset=ISO-2022-JP\n"
   mail_str <<  "Content-Transfer-Encoding: 7bit\n"
   mail_str <<  "\n\n"
-  mail_str <<  "#{NKF.nkf("-Sj", body).force_encoding("Shift_JIS")}\n"
+  mail_str <<  "#{NKF.nkf("-Sj", body).force_encoding("Windows-31J")}\n"
   begin
     Net::SMTP.start( $smtp,25 ) do |smtp|
       smtp.send_mail mail_str,$from,*to
@@ -300,7 +316,7 @@ end
 #***** FTP送信 （2014.4.4 mado_Ftp.rbから移記）*****
 def ftp_soshin(files,dir)
   case $test_mode
-  when 0,2  #本番またはテストモード２のとき、FTP送信する。
+  when 0,2,7  #本番またはテストモード２、７のとき、FTP送信する。
     cnt_retry=0
     begin
       ftp = Net::FTP.new
@@ -336,7 +352,7 @@ def ftp_soshin(files,dir)
         body += "原因としてはモニターPCがYCANに接続していない可能性があります。\n"
         body += "又は横浜市のCGIサーバーがダウンしていることも考えられます。\n"
         body += "以下はシステムのエラーログです。\n\n"
-        body += e.message.force_encoding("Shift_JIS")
+        body += e.message.force_encoding("Windows-31J")
         send_mail(title,body)
         popup(body,48,title,2*60+30)
         raise
@@ -345,6 +361,7 @@ def ftp_soshin(files,dir)
     #テストモード１、３、４又は５のとき、FTPサーバ代替のフォルダ指定があるなら、HTMLファイルをそのフォルダにコピーする。
     if Myfile.dir(:subst)
       FileUtils.cp(files,Myfile.dir(:subst))
+      `CopytoMAC.bat` if File.exist? "CopytoMAC.bat"
     end
   end
 end
@@ -370,7 +387,7 @@ def ruby_path
   process_set.each do |item|
     path=item.CommandLine.match(/[^"]*\.exe/)
   end
-  path.to_s.encode("Shift_JIS")
+  path.to_s.encode("Windows-31J")
 end
 
 
@@ -393,23 +410,34 @@ def test_mode?(*nums)
   end
 end
 
+#**** 棒グラフのイメージタグ ****
+#       引数 bar_type ⇒  :today or :weekly_nin or :weekly_hun
+def bar_chart_imgtag(bar_type,su)
+  def bar_w(bar_type,su)
+    return "1em" if su==0 #width=0でレイアウトが崩れるのを回避
+    $bar_width[bar_type].match(/([\d|\.]+)(.*)/)
+   ($1.to_f * su).round(2).to_s + $2
+  end
+  def bar_h(bar_type)
+    $bar_height[bar_type.to_s.sub(/_.+/,"").to_sym]
+  end
+  def image(su)
+    return $bar_zero if su==0
+    $bar_image
+  end
+  size  = "width:#{bar_w(bar_type,su)};height:#{bar_h(bar_type)};"
+  "<img src=\"#{image(su)}\" alt=\"\" style=\"#{size}\">"
+end
+
 
 class String
   #*** 文字列中の半角数字を全角数字に変換 ***
-  def han; [0,1,2,3,4,5,6,7,8,9];end
-  def zen; ["０","１","２","３","４","５","６","７","８","９"];end
   def num_to_zenkaku
-    han.each do |num|
-      self.gsub!(num.to_s,zen[num])
-    end
-    self
+    self.tr("0-9", "０-９")
   end
   #*** 文字列中の全角数字を半角数字に変換 ***
   def num_to_hankaku
-    zen.each do |num|
-      self.gsub!(num,zen.index(num).to_s)
-    end
-    self
+    self.tr("０-９", "0-9")
   end
   #*** "yyyymmdd"から"y年m月d日（曜日）"に変換 ***
   def day_to_jan
@@ -419,6 +447,14 @@ class String
     d=date.day.to_s
     y=date.yobi
     "#{m}月#{d}日(#{y})"
+  end
+  #*** "yyyymmdd"から"d日Y曜"に変換 ***
+  def day_to_nichiyo
+    return self unless self.match(/\d{8}/)
+    date=Time.parse(self)
+    d=date.day.to_s
+    y=date.yobi
+    "#{d}日#{y}曜"
   end
   #*** "hh:mm"から"午前/午後 h 時 mm 分"に変換 ***
   def time_to_jan
@@ -459,10 +495,10 @@ class String
   #*** "hh:mm"形式の文字列のまま時間計算ができるようにする。
   alias_method :string_add,:+
   def +(second)
-    if self.match(/\d\d?:\d\d/) and second.class==Fixnum
+    if second.class==Fixnum and self.match(/\d\d?:\d\d/)
       t=Time.parse(self)+second
       t.strftime("%H:%M")
-    elsif self.match(/\d{8}/) and second.is_a? Fixnum #日付の加算 2014.3.31付加
+    elsif second.is_a? Fixnum and self.match(/\d{8}/)  #日付の加算 2014.3.31付加
       t=Date.parse(self)+second
       t.strftime("%Y%m%d")
     else
@@ -572,6 +608,65 @@ class String
       false
     end
   end
+  #その日のログファイル
+  def log_file
+    if self.match(/\d{8}/)
+      f=Myfile.dir(:kako_log) + "/" + self + ".log"
+      return nil unless File.exist? f
+      f
+    else
+      raise
+    end
+  end
+  #直近の月曜日の日付
+  def previous_monday
+    if self.match(/\d{8}/)
+      day=self
+      yobi=Date.parse(day).wday
+      if yobi>0
+        day-yobi+1
+      else
+        day-6
+      end
+    else
+      raise
+    end
+  end
+  #当日を含む１週間(月曜から土曜まで)の日付の配列
+  def days_of_week
+    if self.match(/\d{8}/)
+      day=self
+      days=[]
+      d=day.previous_monday
+      (0..5).each do |i|
+        days << d+i
+      end
+      days
+    else
+      raise
+    end
+  end
+  def this_week?
+    if self.match(/\d{8}/)
+      self.previous_monday==Today.previous_monday
+    else
+      raise
+    end
+  end
+  def last_week?
+    if self.match(/\d{8}/)
+      self.previous_monday+7==Today.previous_monday
+    else
+      raise
+    end
+  end
+  def kaichojikan
+    if self.match(/\d{8}/)
+      KaichoJikan.setup(self)
+    else
+      raise
+    end
+  end
 end
 
 
@@ -609,7 +704,7 @@ class Fixnum
   #エンコードのエラーになることがあるので回避
   alias_method :to_string,:to_s
   def to_s
-    to_string.force_encoding("Shift_JIS")
+    to_string.force_encoding("Windows-31J")
   end
 end
 
@@ -649,9 +744,12 @@ class NilClass
     end
   end
   #RaichoListを時刻の条件で絞り込むとき,nilと時刻の大小比較を可能とする。
+  #モニター画面で警告表示等するとき,nilと待ち人数、待ち時間の数値との比較を可能とする。
   [:>,:<,:>=,:<=].each do |name|
     define_method(name) do |arg|
       if arg.class==String and arg.match(/\d\d:\d\d/)
+        nil
+      elsif arg.class==Fixnum
         nil
       else
         raise NoMethodError,"\"nil #{name} #{arg}\"は無効です。\n",caller
@@ -673,7 +771,6 @@ class VcallMonitor
   def initialize
     @vcall_exe=$vcall_exe
     @vcall_path=$vcall_path
-    @moniter_system_window_title=$moniter_system_window_title
     @vcall_hakkenki_address=$vcall_hakkenki_address
     @login_time=nil
     @monitor_started=nil
@@ -716,7 +813,7 @@ class VcallMonitor
     if gaw!=0
       buf="\0"*1000
       window_txt.call(gaw,buf,buf.size)
-      buf.unpack("A*").first.force_encoding("Shift_JIS")
+      buf.unpack("A*").first.force_encoding("Windows-31J")
     else
       "取得失敗"
     end
@@ -877,6 +974,7 @@ class VcallMonitor
   #netstatコマンドをDOS窓を開かないで実行して結果を取得するため、
   #WSHのcmdを使用して結果をいったんファイルに書き出す。
   def data_communication_with_hakkenki
+    return "通信中" if test_mode?(2,3,4,5)
     wsh = WIN32OLE.new('WScript.Shell')
     wsh.Run("cmd /c netstat -n > #{__dir__}/netstat.txt",0,true)
     f=File.read("#{__dir__}/netstat.txt")
@@ -961,7 +1059,7 @@ class MadoSysFile
       file_name[:suii_syasu]  =$html_file[:suii_syasu]        if keys.include? :suii_syasu
       file_name[:suii_machisu]=$html_file[:suii_machisu]      if keys.include? :suii_machisu
     end
-    file[:monitor]  =$monitor_folder+"/"+$html_file[:monitor] if $html_file[:monitor]
+    file[:monitor]  =$monitor_folder+"/"+$html_file[:monitor] if defined? $html_file and $html_file[:monitor]
     file[:log]      =$vcall_data                    if $vcall_data
     file[:log]      =$vcall_data_for_test           if test_mode?(2,3,4,5) and $vcall_data_for_test
     file[:gaikyo]   =MYDOC+"/"+$gaikyo              if $gaikyo
@@ -972,7 +1070,7 @@ class MadoSysFile
         file[:topic]    =$topic
       end
     end
-    dir[:current]   =__dir__.encode("Shift_JIS")
+    dir[:current]   =__dir__.encode("Windows-31J")
     dir[:temp]      =dir[:current]+"/"+$temp_folder if $temp_folder
     dir[:subst]     =$substitute_folder             if $substitute_folder
     dir[:ftp]       =$ftp_dir                       if $ftp_dir
@@ -981,7 +1079,7 @@ class MadoSysFile
     dir[:excel]     =$excel_folder                  if $excel_folder
     dir[:monitor]   =$monitor_folder                if $monitor_folder
     dir[:suii]      =$suii_folder                   if $suii_folder
-    dir[:suii]    ||=dir[:monitor]+"/suii"          if $monitor_folder
+    dir[:suii]    ||=$monitor_folder                if $monitor_folder
     def self.sub_mydoc(path)
       h={ "マイドキュメント"  => MYDOC,
           "ドキュメント"      => MYDOC,
@@ -990,6 +1088,7 @@ class MadoSysFile
           "Documents"         => MYDOC,
           "デスクトップ"      => DESKTOP,
           "Desktop"           => DESKTOP }
+      return path if path==nil
       path.sub(/^(#{h.keys.join("|")})/){h[$1]}
     end  
     [hinagata,file,dir].each {|h| h.each{|k,v| h[k]=sub_mydoc(v)}}
@@ -1062,16 +1161,16 @@ class KaichoJikan
     @heicho=heicho_jikoku
   end
   def self.yobi_jikan
-	  return @@yobi_jikan if @@yobi_jikan
-	  @@yobi_jikan=Hash.new
-	  $kaicho_jikan.each_line do |line|
+    return @@yobi_jikan if @@yobi_jikan
+    @@yobi_jikan=Hash.new
+    $kaicho_jikan.each_line do |line|
       next if line.match(/^\s*$/)
-	    ary=line.chomp.gsub("　","").split
+      ary=line.chomp.gsub("　","").split
       unless ary[1].match(/\d\d?:\d\d?～\d\d?:\d\d?/)
-	      config_error
+        config_error
       end
       @@yobi_jikan[ary[0]]=ary[1]
-	  end
+    end
     @@yobi_jikan
   end
   def self.config_error
@@ -1207,6 +1306,12 @@ class LogEvents
       mado=$gyomu[gyomu_code]
       bango=bango.to_i
       kubun_code=kubun_code.to_i
+      if mado==nil
+        msg =  "ログファイル中に未定義の業務番号「#{gyomu_code}」があります。\n"
+        msg << "config.txtの窓口番号と業務番号の設定を見直してください。"
+        popup msg
+        exit
+      end
       next if error_data?(log_file,mado,bango,mode)
       line_ary << Event.new(time,kubun_code,sym[kubun_code],mado,bango)
     end
@@ -1318,17 +1423,20 @@ class RaichoSya
     end
   end
   def hakken_time(*arg)  #2015.1.18追加
-  #arg…:explain=>"(不明)",OR "…"
-    return unknown(arg)  if @time_h==nil
+    #  @time_h==nilのときの戻り値
+    #  引数(arg)…:explain   => "(不明)"
+    #              else case =>   "…"
+    return express_unknown(arg)  if @time_h==nil
     @time_h
   end
   def yobidashi_time(*arg)  #2015.1.18追加
-  #arg…:explain            =>"(キャンセル)","(待ち中)"
-  #     :explain and :ended =>"(キャンセル)","(不明)"
-  #     :ended              =>     "－"     ,  "…"
-  #      else case          =>     "－"     ,  "－"
-    return cancel(arg)  if @time_c!=nil
-    return waiting(arg) if @time_y==nil
+    #  @time_y==nilのときの戻り値
+    #  引数(arg)…:explain            =>"(キャンセル)","(待ち中)"
+    #             :explain and :ended =>"(キャンセル)","(不明)"
+    #             :ended              =>     "－"     ,  "…"
+    #              else case          =>     "－"     ,  "－"
+    return express_cancel(arg)  if @time_c!=nil
+    return express_waiting(arg) if @time_y==nil
     @time_y
   end
   def machi_su_nin  #2015.1.18追加
@@ -1341,33 +1449,33 @@ class RaichoSya
     return @time_c-@time_h if @time_c != nil
     TimeNow-@time_h
   end
-  def waiting_time(*arg)  #2015.1.18追加
-  #arg…:explain=>"(キャンセル)","(不明)"
-  #     :hun=>"○分"
-  #     :keika=>"○分経過"
-    return cancel(arg)   if    @time_c!=nil
-    return unknown(arg)  if    @time_h==nil
-    if    arg.include?(:keika); self.machi_hun.to_s + "分経過"
-    elsif arg.include?(:hun)  ; self.machi_hun.to_s + "分"
-    else                      ; self.machi_hun.to_s
+  def express_waiting_time(*arg)  #2015.1.18追加
+    #arg…:explain=>"(キャンセル)","(不明)"
+    #     :hun=>"○分"
+    #     :keika=>"○分経過"
+    return express_cancel(arg)    if @time_c!=nil
+    return express_unknown(arg)   if @time_h==nil
+    if     arg.include?(:keika) ; self.machi_hun.to_s + "分経過"
+    elsif  arg.include?(:hun)   ; self.machi_hun.to_s + "分"
+    else                        ; self.machi_hun.to_s
     end
   end
-  def waited_time(*arg)  #2015.1.18追加
-  #arg…:explain=>"(キャンセル)","(不明)"
-  #     :hun=>"○分"
-    return cancel(arg)   if    @time_c!=nil
-    return unknown(arg)  if    @time_h==nil or @time_y==nil
-    if arg.include?(:hun)     ; self.machi_hun.to_s + "分"
-    else                      ; self.machi_hun.to_s
+  def express_waited_time(*arg)  #2015.1.18追加
+    #arg…:explain=>"(キャンセル)","(不明)"
+    #     :hun=>"○分"
+    return express_cancel(arg)   if    @time_c!=nil
+    return express_unknown(arg)  if    @time_h==nil or @time_y==nil
+    if     arg.include?(:hun) ;  self.machi_hun.to_s + "分"
+    else                      ;  self.machi_hun.to_s
     end
   end
-  def cancel(*arg)  #2015.1.18追加
+  def express_cancel(*arg)  #2015.1.18追加
     arg.flatten.include?(:explain)  ? "(キャンセル)" : "－"
   end
-  def unknown(*arg)  #2015.1.18追加
-    arg.flatten.include?(:explain) ? "(不明)"       : "…"
+  def express_unknown(*arg)  #2015.1.18追加
+    arg.flatten.include?(:explain) ?  "(不明)"       : "…"
   end
-  def waiting(*arg)  #2015.1.18追加
+  def express_waiting(*arg)  #2015.1.18追加
     return "(不明)"   if ([:explain,:ended]-arg.flatten).empty?
     return   "…"     if arg.flatten.include?(:ended)
     return "(待ち中)" if arg.flatten.include?(:explain)
@@ -1388,30 +1496,30 @@ class RaichoList
   end
   def self.setup(log_file,mado_array,day=Today)
     @@list=Array.new
-    log=Hash.new
+    logs=Hash.new
     log_file=nil if File.exist?(log_file)==false
     mado_array.each do |mado|
-      log[mado] = self.new(log_file,mado,day)      
-      @@list << log[mado]
+      logs[mado] = self.new(log_file,mado,day)      
+      @@list << logs[mado]
     end
     events=LogEvents.setup(log_file,day)
     #*** 発券データを元に来庁者オブジェクトを生成しリストに追加する(番号が跳ぶときは補完する)。***
     events.each do |event|
       if event.kubun==:hakken
-        log[event.mado].add_raichosya(event.bango,event.time)
+        logs[event.mado].add_raichosya(event.bango,event.time)
       end
     end
     #*** 呼出データとキャンセルデータの時刻を来庁者オブジェクトに追記する。
     events.each do |event|
       if event.kubun==:yobidashi or event.kubun==:cancel
-        log[event.mado].add_time(event.time,event.kubun,event.bango)
+        logs[event.mado].add_time(event.time,event.kubun,event.bango)
       end
     end
     #*** 来庁者オブジェクトに発券時の待ち人数を追記する。
-    @@list.each do |log|
-      log.add_machi_su
+    @@list.each do |logs|
+      logs.add_machi_su
     end
-    log
+    logs
   end
   #※※※※※※※※※ ↓セットアップ用メソッド↓ ※※※※※※※※※※※※※  
   #*** 新しい来庁者オブジェクトを追加する ***
@@ -1571,7 +1679,8 @@ class RaichoList
   #*** 次に呼び出す予定の来庁者オブジェクト ***
   def next_call(time=TimeNow)
     id=self.yobidashi_sya_just_before(time).id
-    list=self.find{|sya| sya.id>id and sya.time(:yobidashi)==nil and sya.time(:cancel)==nil}
+    sya=self.find{|sya| sya.id>id and sya.time(:yobidashi)==nil and sya.time(:cancel)==nil}
+#    sya ? sya : RaichoSya.new
   end
   
   #※※※※※※※※※※  人数を調べる ※※※※※※※※※※※※
@@ -1603,7 +1712,23 @@ class RaichoList
     su
   end
   def machi_su_nin(time_or_id=TimeNow)
-    self.machi_su(time_or_id).to_s + "人"
+    if time_or_id==TimeNow
+      @machi_su_nin ||= self.machi_su(time_or_id).to_s + "人"
+    else
+      self.machi_su(time_or_id).to_s + "人"
+    end
+  end
+  #*** 直前の待ち人数(直前3分間の最多待ち人数) ***
+  def max_machi_su_within_3minutes
+    if defined? @max_machi_su_within_3minutes
+      @max_machi_su_within_3minutes
+    else
+      su=[]
+      [1,2,3].each do |hun|
+        su << self.machi_su(TimeNow-hun)
+      end
+      @max_machi_su_within_3minutes=su.max
+    end
   end
   #*** 来庁者数１ id番号から計算する（実際の来庁者数に最も近い） ***
   def sya_su(time=TimeNow)
@@ -1661,7 +1786,10 @@ class RaichoList
   def self.machi_su_nin(time=TimeNow)
     self.machi_su(time).to_s + "人"
   end
-
+  #*** 次に呼び出す来庁者の発券時の待ち人数 2015.10.24 ***
+  def next_machi_su
+    self.next_call.machi_su
+  end
   #※※※※※※※※※※  時刻、時間を調べる ※※※※※※※※※  
   
   #*** 来庁者オブジェクトに記録された最終(発券/呼出/キャンセル)時刻 ***
@@ -1846,77 +1974,233 @@ class RaichoSya
   end
   def hun(*mode)
     ary=mode.flatten
-    if    ary.include?(:ended)    ; self.waited_time(:hun)    
-    elsif ary.include?(:waiting)  ; self.waiting_time(:keika) 
-    elsif ary.include?(:excel)    ; self.waited_time()        
+    if    ary.include?(:ended)    ; self.express_waited_time(:hun)    
+    elsif ary.include?(:waiting)  ; self.express_waiting_time(:keika) 
+    elsif ary.include?(:excel)    ; self.express_waited_time()        
     end
   end
 end
-#*** RaichoListクラスの拡張 ***
-class RaichoList
+
+#*** AlertJokenクラス ***
+class AlertJoken
+  #@tableはCSV::Tableクラスオブジェクト
+  attr_accessor :table
+  def initialize(str_table)
+    #str_table：カンマ区切りではなく空白区切りのテキストデータ
+    def hosei #CSVパース時のコンバータ1
+      lambda do |field,info|
+        case info.header
+        when '窓口'
+          field
+        when '警告方法'
+          field.split(/,|、/)
+        else
+          field.tr('０-９＜＞＝','0-9<>=').sub(/^\d/,'==\&').sub(/^=\d/,'=\&')
+        end
+      end
+    end
+    def to_joken #CSVパース時のコンバータ2
+      lambda do |field,info|
+        if info.header!="窓口" and info.header!="警告方法" and field!="nil"
+          hikaku_komoku_map.key(info.header).to_s + field
+        else
+          field
+        end
+      end
+    end
+    @alert_kijun={ :machi_su             => "待ち人数",
+                   :machi_su_just_before => "直前の待ち人数",
+                   :next_machi_su        => "次のお客様の発券時の待ち人数",
+                   :next_machi_jikan     => "次のお客様の待ち時間",
+                   :keika_jikan          => "直近の呼び出しからの経過時間"  }
+    @table=CSV.parse(str_table.gsub('　',' '),
+                      :headers    => true,
+                      :col_sep    => "\s",
+                      :converters => [hosei,to_joken],
+                      :skip_blanks=> true )
+  end
+  def kijun
+    @alert_kijun.keys
+  end
+  def [](mado)
+    aj=Marshal.load(Marshal.dump(self)) # AJの深いコピーを作成
+    aj.table.delete_if{|row| row["窓口"]!=mado}
+    aj
+  end
+  def keys
+    self.table.values_at("窓口").flatten.uniq.sort
+  end
+  def by(keikoku_hoho)
+    aj=Marshal.load(Marshal.dump(self)) # AJの深いコピーを作成
+    aj.table.delete_if{|row| not row["警告方法"].include?(keikoku_hoho)}
+    aj
+  end
+  def compare(item)
+    aj=Marshal.load(Marshal.dump(self)) # AJの深いコピーを作成
+    aj.table.delete_if{|row| not row.to_s=~/(^|,)#{item}(=|<|>)/}
+    aj
+  end
+  def hikaku_komoku_map
+    {:machi_su             => "待ち人数",
+     :machi_su_just_before => "直前の待ち人数",
+     :next_machi_su        => "次のお客様の発券時の待ち人数",
+     :next_machi_jikan     => "次のお客様の待ち時間",
+     :keika_jikan          => "直近の呼び出しからの経過時間"  }
+  end
+  def hikaku_komoku
+    hikaku_komoku_map.keys
+  end
+  def joken_set
+    ary=@table.by_col.delete_if{|h,v| h=="窓口" or h=="警告方法"}.to_a
+    ary.delete_at(0) #ヘッダーを削除
+    ary.each{|j| j.delete("nil")}.map{|j| j.join(" and ")}
+  end
+  def joken_set_another(compare_item=:all)
+    ary=@table.by_col.delete_if{|h,v| h=="窓口" or h=="警告方法"}.to_a
+    ary.delete_at(0)
+    set=[]
+    ary.each do |j|
+      j.delete("nil")
+      s=j.join(" and ")
+      if compare_item==:all or s.match(/(^| )#{compare_item}(=|<|>)/)
+        set << s
+      end
+    end
+    set
+  end
+  #真の条件があるかないか判別できればいいときは条件セットを引数にする。
+  #どの条件が真かを判別する必要がある時は個別の条件を引数にする。
+  #真の場合の戻り値はAND条件をバラした単独条件の配列: A and B => [A,B]
+  def meet_joken?(log)
+    @log=log
+    def machi_su             ; @log.machi_su                     ; end
+    def machi_su_just_before ; @log.max_machi_su_within_3minutes ; end
+    def next_machi_su        ; @log.next_machi_su                ; end
+    def next_machi_jikan     ; @log.machi_jikan                  ; end
+    def keika_jikan          ; @log.keika_jikan                  ; end
+    joken_set.each do |j|
+      return j.split(' and ') if eval(j)
+    end
+    false
+  end
+end
+
+#***** 窓口停滞警告メール *****
+def teitai_keikoku_mail(logs)
+  return nil unless defined? AJ
+  aj=AJ.by("メール")
+  $mado_array.each do |m|
+    if aj[m].meet_joken?(logs[m])
+      next_yobidashi_person    = logs[m].next_call
+      next unless next_yobidashi_person
+      current_yobidashi_person = logs[m].current(:yobidashi)
+      next_person_machi_su     = next_yobidashi_person.machi_su
+      next_person_machi_jikan  = logs[m].machi_jikan
+      keika_jikan              = logs[m].keika_jikan
+      #*** メールデータ作成 ***
+      title  = "【#{m}番窓口注意】受付が停滞しています。"
+      body   = "#{m}番窓口の受付が#{current_yobidashi_person.bango}番で止まっています。"
+      body   << "\n次の番号のお客様の発券時待ち人数　：#{next_person_machi_su}人"
+      body   << "\n次の番号のお客様の待ち時間　　　　：#{next_person_machi_jikan}分"
+      body   << "\n現在の番号の継続時間（停滞時間）　：#{keika_jikan}分"
+      #*** メール送信 ***
+      send_mail(title,body)
+    end
+  end
+end
+
+#***** 課内モニター画面の作成 *****
+def make_monitor_html(logs)
+  #*** 課内モニター画面のヘッダーセクションのscript部分 ***
+  def html_joken(aj,log,i)
+      " "*17 + "if (i==#{i}) return #{aj.meet_joken?(log)} ;\n"
+  end
   #*** 課内モニター画面の最初の概況セクション ***
-  def html_gaikyo
-    sya=current(:yobidashi)
+  def html_gaikyo(log,mado,i)
+    sya=log.current(:yobidashi)
+    next_sya=log.next_call
+    next_sya=RaichoSya.new unless next_sya
     str = "<tr>"
-    str << "<td><a href=\"\##{self.mado}\">#{self.mado}</a></td>"
-    str << "<td>#{sya.bango.to_s         }</td>"
-    str << "<td>#{sya.machi_su_nin       }</td>"
-    str << "<td>#{sya.hun(:ended)        }</td>"
-    str << "<td>#{add_alert(:machi_su)   }</td>"
-    str << "<td>#{add_alert(:machi_jikan)}</td>"
-    str << "<td>#{add_alert(:keika_jikan)}</td>"
+    str <<    "<td><a href=\"\##{mado}\">#{mado}</a></td>\n"
+    str <<    "<td id=\"machi_su#{i.to_s}\">"
+    str <<        "#{log.machi_su_nin}<br>"
+    str <<        "<div id=\"machi_su_just_before#{i.to_s}\" class=\"just_before\">"
+    str <<          "(#{log.max_machi_su_within_3minutes}人)"
+    str <<        "</div>"
+    str <<    "</td>\n"
+    str <<    "<td>#{sya.bango.to_s                 }</td>\n"
+    str <<    "<td>#{sya.machi_su_nin               }</td>\n"
+    str <<    "<td>#{sya.express_waited_time(:hun)  }</td>\n"
+    str <<    "<td id=\"next_machi_su#{i.to_s}\">"
+    str <<        "#{next_sya.machi_su_nin}"
+    str <<    "</td>\n"
+    str <<    "<td id=\"next_machi_jikan#{i.to_s}\">"
+    str <<        "#{next_sya.express_waiting_time(:hun)}"
+    str <<    "</td>\n"
+    str <<    "<td id=\"keika_jikan#{i.to_s}\">"
+    str <<        "#{log.keika_jikan.to_s}分"
+    str <<    "</td>\n"
+    str <<    "<td>"
+    str <<      "<div class=\"sound\">"
+    str <<        "<input type=\"radio\" name=\"mado#{i.to_s}\" value=\"on\" checked=\"checked\" onClick=\"setcookie(this)\">オン"
+    str <<        "<input type=\"radio\" name=\"mado#{i.to_s}\" value=\"off\" onClick=\"setcookie(this)\">オフ"
+    str <<      "</div>"
+    str <<    "</td>"
     str << "</tr>\n"
-    str.gsub("経過","")
+    if defined? AJ
+      add_alert(log,mado,str)
+    else
+      str
+    end
+  end
+  #警告表示を付加
+  def add_alert(log,mado,str)
+    t1="<span class=\"alert\">"
+    t2="</span>"
+    aj=AJ[mado].by("モニター")
+    AJ.kijun.each do |kijun|
+      if aj.compare(kijun).meet_joken?(log)
+        str.sub!(/(id=\"#{kijun}.*?>)([^<]*)</,'\1'+t1+'\2'+t2+'\3'+"<")
+      end
+    end
+    str
   end
   #*** 課内モニター画面の番号待ち状況（待ち中）のセクション ***
-  def html_machichu
-    id = self.current(:yobidashi).id
+  def html_machichu(log)
+    id = log.current(:yobidashi).id
     res= ""
-    self.each do |sya|
+    log.each do |sya|
       next if sya.id<=id
-      res << sya.html_bango_betsu(self.mado,:waiting,:explain)
+      res << sya.html_bango_betsu(log.mado,:waiting,:explain)
     end
     res
   end
   #*** 課内モニター画面の番号待ち状況（終了分）のセクション ***
-  def html_syuryo
-    id = self.current(:yobidashi).id
+  def html_syuryo(log)
+    id = log.current(:yobidashi).id
     res= ""
-    self.each do |sya|
+    log.each do |sya|
       break if sya.id>id
-      res << sya.html_bango_betsu(self.mado,:ended,:explain)
+      res << sya.html_bango_betsu(log.mado,:ended,:explain)
     end
     res  
   end
-  #*** 人、分等を付加すると共に、一定以上の待ち人数、待ち時間のとき赤字で大きく表示する ***
-  def add_alert(method)
-    case method
-    when :machi_su      ;borders,pos = {:machi_su=>19}                     ,"人"
-    when :machi_jikan   ;borders,pos = {:machi_jikan=>29}                  ,"分"
-    when :keika_jikan   ;borders,pos = {:keika_jikan=>15,:machi_jikan=>15} ,"分経過"
-    end
-    res=self.send(method)
-    borders.each do |method,border|
-      return "－"          if res==nil
-      return res.to_s+pos  if res.to_i<border and res.to_s.match(/^\d+$/) #基準未満の数字のみの場合
-      return res           if res.to_i<border
-    end
-    "<span class=\"alert\">#{res.to_s+pos}</span>"
-  end
-end
-
-def make_monitor_html(log)
+  #*** ここから本処理 ****
   if Myfile.dir(:monitor)
       f=File.read(Myfile.hinagata(:monitor))
+      f.sub!(/<JOKEN>/)       do |str|
+        aj=AJ.by("サウンド")
+        s="";$mado_array.each_with_index{|m,i| s << html_joken(aj[m],logs[m],i)} ;s
+      end if defined? AJ
       f.sub!(/<GENZAI>/)     {|str| "#{Today.day_to_jan} #{TimeNow.time_to_jan}現在"}
       f.sub!(/<UKETSUKECHU>/) do |str|
-        s="";$mado_array.each{|m| s << log[m].html_gaikyo}  ;s
+        s="";$mado_array.each_with_index{|m,i| s << html_gaikyo(logs[m],m,i)} ;s
       end
       f.sub!(/<MACHICHU>/) do |str|
-        s="";$mado_array.each{|m| s << log[m].html_machichu};s
+        s="";$mado_array.each{|m| s << html_machichu(logs[m])};s
       end
       f.sub!(/<SYURYO>/) do |str|
-        s="";$mado_array.each{|m| s << log[m].html_syuryo}  ;s
+        s="";$mado_array.each{|m| s << html_syuryo(logs[m])}  ;s
       end
       temp = Myfile.dir(:temp)+"/"+Myfile.file_name(:monitor)
       to   = Myfile.dir(:monitor)
@@ -1928,10 +2212,10 @@ def make_monitor_html(log)
       end
   end
 end
-def make_csv_data(log)
+def make_csv_data(logs)
   csv=""
   $mado_array.each do |mado|
-    log[mado].each do |sya|
+    logs[mado].each do |sya|
       csv << sya.csv_bango_betsu(mado)  << "\n"
     end
   end
@@ -1940,12 +2224,12 @@ end
 
 
 #*****１日の概況データを保存する*****
-def gaikyo_data_save(log)
+def gaikyo_data_save(logs)
   str=""
   $mado_array.each do |mado|
-    maiji_sya_su  =log[mado].maiji_sya_su($ku).values.join(",")
-    maiji_machi_su=log[mado].maiseiji_machi_su($ku).values.join(",")
-    str << "#{Today},#{YobiNum.yobi},#{mado},#{log[mado].sya_su},,#{maiji_sya_su},,#{maiji_machi_su}\n"
+    maiji_sya_su  =logs[mado].maiji_sya_su($ku).values.join(",")
+    maiji_machi_su=logs[mado].maiseiji_machi_su($ku).values.join(",")
+    str << "#{Today},#{YobiNum.yobi},#{mado},#{logs[mado].sya_su},,#{maiji_sya_su},,#{maiji_machi_su}\n"
   end
   file=Myfile.file(:gaikyo)
   unless File.exist? file
@@ -2021,14 +2305,14 @@ end
 
 
 #****エクセルのファイルの作成******
-def make_xlsx(log)
+def make_xlsx(logs)
   str    = "#{Today.day_to_jan}の窓口状況\n\n"
   $mado_array.each do |mado|
-    str << "#{mado}番窓口: 来庁者数 #{log[mado].sya_su.to_s}、 平均待ち時間 #{log[mado].average_machi_hun.to_s} 分\n" 
+    str << "#{mado}番窓口: 来庁者数 #{logs[mado].sya_su.to_s}、 平均待ち時間 #{logs[mado].average_machi_hun.to_s} 分\n" 
   end
   str   << "\n"
   str   << "窓口,番号,発券時待ち人数,発券時刻→呼出時刻,待ち時間\n"
-  str   << make_csv_data(log)
+  str   << make_csv_data(logs)
   temp   = Myfile.dir(:temp)+"/temp.csv"
   begin
     File.write(temp,str)
@@ -2062,7 +2346,7 @@ def make_xlsx(log)
       FileUtils.cp_r(book_name,Myfile.dir(:excel),{:preserve => true})
     end
   rescue =>e
-#popup e.message.force_encoding("Shift_JIS") + "\n\n#{temp}"
+#popup e.message.force_encoding("Windows-31J") + "\n\n#{temp}"
     #原因不明であるが、環境によってはOLEオートメーションのアクセスを拒否される場合がある。
     #その場合の代替処理として、同じ内容のcsvファイルを保存する。
     csv_name="#{Myfile.dir(:excel)}/窓口待ち状況(#{Time.parse(Today).strftime('%Y-%m-%d')}).csv"

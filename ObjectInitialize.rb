@@ -1,6 +1,6 @@
-# -*- coding: Shift_JIS -*-
+# -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.2.8 (2014.8.15)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.3 (2016.3.8)             #
 #                                                                                #
 #                      <<オブジェクトの生成（初期化）>>                          #
 #                                                                                #
@@ -10,6 +10,11 @@
 
 #*****設定ファイル(confファイルで変数を設定)*****
 load "./config.txt"
+
+
+#*****運用モード****
+#テストモードの指定がないときは運用モードとする。
+$test_mode=0 until defined? $test_mode
 
 
 #*****テスト環境用の設定ファイル*****
@@ -37,7 +42,12 @@ YobiNum =Time.now.wday
 
 
 #****窓口番号の配列*****
-$mado_array = $mado_bango.split(",")
+if $mado_bango.class==String
+  $mado_array = $mado_bango.split(",")
+  #旧バージョンとの互換性保持(2016.3.8)
+else
+  $mado_array = $mado_bango
+end
 
 
 #****窓口ごとの番号の割り当てを券番号（KenBango）クラスの変数に格納******
@@ -52,6 +62,7 @@ unless $bango
   end
 end
 
+
 #***** 設定ファイルのデータをもとに開庁時刻、閉庁時刻を開庁時間（KaichoJikan）クラスの変数に格納 *****
 #使い方例：$ku.kaicho => "08:45"
 #          $ku.heicho => "17:00"
@@ -59,7 +70,10 @@ $ku=KaichoJikan.setup(Today) unless $ku
 
 
 #***** 窓口混雑状況メッセージを目安待ち時間（MeyasuMachijikan）クラスの変数に格納 *****
-$message=MeyasuMachijikan.parse($jam_message)
+$message=MeyasuMachijikan.parse($jam_message) if defined? $jam_message
+
+#***** 窓口状況による警告(注意喚起)の条件をAlertJokenクラスの変数に格納 2015/10/10*****
+AJ=AlertJoken.new($keikoku_joken) if defined? $keikoku_joken
 
 
 #***** 設定チェック(テストモード６のときのみ) *****
@@ -71,7 +85,6 @@ end
 if test_mode?(2,3,4,5)
   ConfigSet.log_file_check
 end
-
 
 #以下はプログラムの動作確認用（テストモード５のとき実行）
 #※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※
@@ -133,6 +146,13 @@ def 動作テスト
 end
 動作テスト if 1==0
 
-
+#***** AlertJokenクラスの動作チェック(開発用) *****
+def alert_jokenテスト
+  p AJ["7"]
+  p AJ["7"].by("メール").table.to_a
+  p AJ["7"].by("モニター").joken_set_another("next_machi_jikan")
+  p AJ["7"].by("モニター").compare("next_machi_jikan").joken_set
+end
+alert_jokenテスト if 1==0
 
 

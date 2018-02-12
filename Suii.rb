@@ -1,6 +1,6 @@
-# -*- coding: Shift_JIS -*-
+# -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.2 (2015.1.21 )           #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.4 (2016.2.17 )           #
 #                                                                                #
 #                       過去ログの分析編                                         #
 #                                                                                #
@@ -8,94 +8,33 @@
 #                        著作権  横浜市                                          #
 #--------------------------------------------------------------------------------#
 
-Encoding.default_external="Shift_JIS"
+Encoding.default_external="Windows-31J"
 require './objectinitialize.rb' unless defined? Today
 require "./holiday_japan"
 
-class String
-  #その日のログファイル
-  def log_file
-    if self.match(/\d{8}/)
-      f=Myfile.dir(:kako_log) + "/" + self + ".log"
-      return nil unless File.exist? f
-      f
-    else
-      raise
-    end
-  end
-  #直近の月曜日の日付
-  def previous_monday
-    if self.match(/\d{8}/)
-      day=self
-      yobi=Date.parse(day).wday
-      if yobi>0
-        day-yobi+1
-      else
-        day-6
-      end
-    else
-      raise
-    end
-  end
-  #当日を含む１週間(月曜から土曜まで)の日付の配列
-  def days_of_week
-    if self.match(/\d{8}/)
-      day=self
-      days=[]
-      d=day.previous_monday
-      (0..5).each do |i|
-        days << d+i
-      end
-      days
-    else
-      raise
-    end
-  end
-  def this_week?
-    if self.match(/\d{8}/)
-      self.previous_monday==Today.previous_monday
-    else
-      raise
-    end
-  end
-  def last_week?
-    if self.match(/\d{8}/)
-      self.previous_monday+7==Today.previous_monday
-    else
-      raise
-    end
-  end
-  def kaichojikan
-    if self.match(/\d{8}/)
-      KaichoJikan.setup(self)
-    else
-      raise
-    end
-  end
-end
 
 class Kakolog
   attr_reader :days
   def initialize(days)
     @days=days
-    @log         = Hash.new
+    @logs        = Hash.new
     @kaichojikan = Hash.new
     setup(days)
   end
   def setup(days)
     days.each do |day|
       if day.log_file
-        @log[day]        = RaichoList.setup(day.log_file,$mado_array,day)
+        @logs[day]        = RaichoList.setup(day.log_file,$mado_array,day)
       else
-        @log[day]        = nil
+        @logs[day]        = nil
       end
       @kaichojikan[day]= KaichoJikan.setup(day)
     end
   end
-  def log(day,mado=nil)
-    return nil if @log[day]==nil #2015.1.21
-    return @log[day] if mado==nil
-    @log[day][mado]
+  def logs(day,mado=nil)
+    return nil if  @logs[day]==nil #2015.1.21
+    return @logs[day] if mado==nil
+    @logs[day][mado]
   end
   def kaichojikan(day)
     @kaichojikan[day]
@@ -162,24 +101,26 @@ def hp_graph_data(day,log,kubun)
     data.each do |ji,hun|
       next if ji=="17:00"  #17時現在ははずす。
       if hun==nil
-        str << "<dt>#{ji.hour}時：…分</dt><dd>&nbsp;</dd>\n"
-      elsif hun>1
-        str << "<dt>#{ji.hour}時：#{hun.to_s}分</dt><dd><span>#{"|" * (hun/2).to_i}</span></dd>\n"
+        str_hun="…分"
+        hun=0
       else
-        str << "<dt>#{ji.hour}時：#{hun.to_s}分</dt><dd>&nbsp;</dd>\n"
+        str_hun="#{hun.to_s}分"
       end
+      str << "<dt>#{ji.hour}時:#{str_hun}</dt>"
+      str << "<dd>#{bar_chart_imgtag(:weekly_hun,hun)}</dd>\n"
     end
   when :suii_machisu
     data=log.maiseiji_machi_su(kaichojikan,compare_mode: :yes)
     data.each do |ji,nin|
       next if ji=="17:00"  #17時現在ははずす。
       if nin==nil
-        str << "<dt>#{ji.hour}時：…人</dt><dd>&nbsp;</dd>\n"
-      elsif nin>0
-        str << "<dt>#{ji.hour}時：#{nin.to_s}人</dt><dd><span>#{"|" * nin.to_i}</span></dd>\n"
+        str_nin="…人"
+        nin=0
       else
-        str << "<dt>#{ji.hour}時：#{nin.to_s}人</dt><dd>&nbsp;</dd>\n"
+        str_nin="#{nin.to_s}人"
       end
+      str << "<dt>#{ji.hour}時:#{str_nin}</dt>"
+      str << "<dd>#{bar_chart_imgtag(:weekly_nin,nin)}</dd>\n"
     end
   when :suii_syasu
     data=log.maiji_sya_su(kaichojikan)
@@ -187,14 +128,15 @@ def hp_graph_data(day,log,kubun)
       next if ji.to_i==17 or ji.to_i==8  #8時と17時をはずす。
       ji="0#{ji}"[-2,2]
       if nin==nil
-        str << "<dt>#{ji}時:…人</dt><dd>&nbsp;</dd>\n"
-      elsif nin>0
-        str << "<dt>#{ji}時:#{nin.to_s}人</dt><dd><span>#{"|" * nin.to_i}</span></dd>\n"
+        str_nin="…人"
+        nin=0
       else
-        str << "<dt>#{ji}時:#{nin.to_s}人</dt><dd>&nbsp;</dd>\n"
+        str_nin="#{nin.to_s}人"
       end
+      str << "<dt>#{ji.hour}時:#{str_nin}</dt>"
+      str << "<dd>#{bar_chart_imgtag(:weekly_nin,nin)}</dd>\n"
     end
-    str << "<dt>総計:#{log.sya_su("23:59")}人</dt><dd>&nbsp;</dd>\n"
+    str << "<dt>総計:#{log.sya_su("23:59")}人</dt><dd>#{bar_chart_imgtag(:weekly_nin,0)}</dd>\n"
   end
   str
 end
@@ -203,12 +145,14 @@ end
 def html_th(days)
   th=[]
   days.each do |day|
-    th.push(day.day_to_jan)
+    if day==days[-1]
+      s = '<th scope="col" class="date table_box_r">'+day.day_to_jan+'</th>'
+    else
+      s = '<th scope="col" class="date">'+day.day_to_jan+'</th>'
+    end
+    th << s
   end
-  th_option='scope="col" nowrap class="date"'
-  s="<th>"+th.join("</th>\n    <th>")+"</th>"
-  s=s.sub(/(date)(\">[^>]*<\/th>)$/,'\1 table_box_r\2').gsub(/<th>/,"<th #{th_option}>")
-  s
+  th.join("\n    ")
 end
 
 #***** HP用データのグラフ部分のタグデータ *****
@@ -229,7 +173,7 @@ def html_suii(kubun,kakolog,mado)
     when :closed_mado
       $close_message[:suii]
     else
-      "　" #明日以降の開庁日はコメントなしのブランク表示
+      #"　" #明日以降の開庁日はコメントなしのブランク表示
     end
   end
   def status(day,log,mado)
@@ -241,9 +185,10 @@ def html_suii(kubun,kakolog,mado)
   end
   suii=""
   kakolog.days.each do |day|
-    log   =kakolog.log(day,mado)
+    log   =kakolog.logs(day,mado)
     kaihei=status(day,log,mado)
-    suii << "<td class=\"graph\">#{str(day,log,kaihei,kubun)}</td>\n"
+    suii << "<td class=\"graph\" headers=\"#{mado}番窓 #{day.day_to_nichiyo}\">"
+    suii << "#{str(day,log,kaihei,kubun)}</td>\n"
   end
   suii
 end
@@ -327,6 +272,24 @@ def make_suii_for_monitor
   end
 end
 
+#***** HTMLの修正（「今週」⇒「先週」） *****
+def modify_html_of_week()
+  files=[]
+  kubuns=Myfile.keys_of_suii
+  kubuns=kubuns.reject{|key| key.to_s=~/sya_?su/}
+  kubuns.each_with_index do |kubun,i|
+    file=Myfile.dir(:temp)+"/"+Myfile.file_name(kubun)
+    if i==0
+      return nil unless File.exist?(file)
+      return nil if File.mtime(file).to_yymmdd.this_week?
+    end
+    f=File.read(file)
+    f.gsub!(/今週の/,"先週の")
+    File.write(file,f)
+    files << file
+  end
+  files
+end
 
 #任意の期間について1週間ごとの推移のhtmlを作成する。
 def make_suii_during_optional_period(day1,day2=Today,use=:local)
@@ -344,8 +307,19 @@ def make_suii_during_optional_period(day1,day2=Today,use=:local)
   files
 end
 
+
+#指定期間のhtmlを作成して所定のフォルダに保存する。
+if 1==0
+  files=make_suii_during_optional_period("20140512","20140517",:local)
+  files.each do |file|
+    to=Myfile.dir(:suii)
+    FileUtils.cp(file,to)
+  end
+  popup Myfile.dir(:suii) + " に保存しました。"
+end
+
 #make_html_of_week("20140627",:public)
-#puts make_suii_during_optional_period("20130610","20140101",:local)
+#puts make_suii_during_optional_period("20150608","20150619",:local)
 #puts make_suii_for_monitor
 #kubuns=Myfile.keys_of_suii.reject{|key| key.to_s=~/sya_?su/}
 #p kubuns

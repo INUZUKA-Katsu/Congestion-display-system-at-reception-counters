@@ -14,7 +14,7 @@
 
 
 <!-- ↓保険年金課窓口混雑状況CSS↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
-<meta http-equiv="refresh" content="60">
+<!--meta http-equiv="refresh" content="60"-->
 <link rel="StyleSheet" href="./css/image.css" type="text/css" media="screen,tv,projection,print">
 <!-- 枠用CSS -->
 <link rel="StyleSheet" href="./css/mado-s.css" type="text/css" media="screen,tv,projection,print">
@@ -63,29 +63,47 @@ $(function(){
 
 <!-- ■■■↓ページタイトルを入力↓■■■ --><!-- ■■■ ここから1段組 ■■■ -->
 <h3>トピック</h3>
-<h4>１３番（保険係・収納担当）～１３番窓口ができました。～</h4>
-<p>7月22日（火）から13番窓口ができました。これまで7番窓口で取り扱っていた業務のうち、国民健康保険と介護保険の<strong>保険料の納付、納付相談</strong>を専門に取り扱います。保険料の納付に関するご相談は13番窓口にお越しください。<br>なお、後期高齢者医療制度の保険料については、これまでどおり、8番窓口でお取扱いします。</p>
-
+    <div class="shortcut">
+      <a href="#jokyo">トピックをスキップしてすぐに今の窓口の状況をみる。</a>
+    </div>
+	<div class="madoKon-EmgMessege">
+<!-- ↓窓口混雑状況 緊急メッセージ用 ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
+	<!--madoguchiTopics-->
+<!-- ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ -->
+	</div>
 <h4>７番（保険係・資格賦課担当）</h4>
-<p>月初め及び休み明けの月曜日は、社会保険からの切り替えなどで窓口が混雑する場合があります。<br>申し訳ございませんが、ご理解、ご協力をお願いします。</p>
-
+<p>年度初めの４月上旬、とりわけ４月１日や月曜日は、社会保険からの切り替えなどで窓口がたいへん混雑します。なにとぞ、ご理解、ご協力をお願いします。</p>
+<p><a href="http://www.city.yokohama.lg.jp/hodogaya/madoguti/doyou-kaichou.html">土曜日の開庁日</a>は、11時ごろから混み合うことがあります。土曜日はお早目の時間にお出でになることをおすすめします。</p>
 
 <h4>８番（保険係・給付担当）</h4>
-<p>毎月下旬は、高額療養費の申請手続きのため多数の方が８番窓口に来庁され、長時間お待ちいただく場合があります。ご理解ご協力をお願いいたします。</p>
+<p>毎月下旬は、高額療養費の申請手続きのため多数の方が８番窓口に来庁され、長時間お待ちいただく場合があります。ご理解、ご協力をお願いいたします。</p>
+
+<h4>１３番（保険係・収納担当）～１３番窓口ができました。～</h4>
+<p>国民健康保険、介護保険、後期高齢者医療の保険料の納付に関するご相談は13番窓口にお越しください。</p>
+
 
 <!--TOPIC-->
-
-<p class="time"><!--TIME--></p>
-
+<a name="jokyo"></a>
+<h3>窓口混雑状況</h3>
 <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0" class="table_box">
+  <caption>
+	<div id="genzai">
+      <!--TIME-->
+      <span id="kyugyobi">
+        <a href="javascript:location.reload();">最新の情報に更新</a>
+      </span>
+    </div>
+  </caption>
+  <thead>
   <tr>
-    <th width="33%" nowrap class="table_box_l madoNo">窓口番号</th>
-    <th width="33%" nowrap class="table_box_l uketukeNo">ただ今の受付番号</th>
-    <th width="33%" nowrap class="table_box_l machi">待ち人数</th>
+    <th scope="col" width="33%" nowrap class="table_box_l madoNo">窓口番号</th>
+    <th scope="col" width="33%" nowrap class="table_box_l uketukeNo">ただ今の受付番号</th>
+    <th scope="col" width="33%" nowrap class="table_box_l machi">待ち人数</th>
   </tr>
-
+  </thead>
+  <tbody>
   <tr class="table_box_bg">
-    <td class="madoNo">７番</td>
+    <td class="madoNo"><h4>７番</h4></td>
     <td class="uketukeNo"><!--7-BANGO--></td>
     <td class="machi"><!--7-NINZU--></td>
   </tr>
@@ -116,7 +134,7 @@ $(function(){
   </tr>
 
   <tr class="table_box_bg">
-    <td class="madoNo">１３番</td>
+    <td class="madoNo"><h4>１３番</h4></td>
     <td class="uketukeNo"><!--13-BANGO--></td>
     <td class="machi"><!--13-NINZU--></td>
   </tr>
@@ -148,7 +166,7 @@ $(function(){
   </tr>
 
   <tr class="table_box_bg">
-    <td class="madoNo">８番</td>
+    <td class="madoNo"><h4>８番</h4></td>
     <td class="uketukeNo"><!--8-BANGO--></td>
     <td class="machi"><!--8-NINZU--></td>
   </tr>
@@ -186,7 +204,7 @@ $(function(){
   </tr>
   
   <tr class="table_box_bg">
-    <td class="madoNo">９番</td>
+    <td class="madoNo"><h4>９番</h4></td>
     <td class="uketukeNo"><!--9-BANGO--></td>
     <td class="machi"><!--9-NINZU--></td>
   </tr>
@@ -215,22 +233,23 @@ $(function(){
       </dl>
     </td>
   </tr>
+  </tbody>
   </table>
-<dl class="comment">
-<dt>※お待ちの番号が過ぎてしまったときは、フロア案内の職員等にお声をおかけください。</dt>
-<dt>※待ち時間について…</dt>
-<dd><a href="./">PC版</a>の画面では待ち時間の目安も表示していますので併せてご利用ください。</dd>
-<dt>※受付番号について…</dt>
-<dd>７番窓口は 1～300、８番窓口は 301～600、９番窓口は 601～800、13番窓口は 801～900 の番号を順番に発券し受け付けています。上限まで番号を使い切ると最初の番号に戻ります。</dd>
-<dt>※受付時間について…</dt>
-<dd>月曜日から金曜日までは<strong>午前８時４５分から午後５時まで</strong>、第２・第４土曜日は<strong>午前９時から正午まで</strong>です。</dd>
-</dl>
 
-<p>【お問合せ先】<br>
-保険年金課国民年金係　TEL：045-334-6332、FAX：045-334-6334<br>
-保険年金課保険係　　　　TEL：045-334-6335、FAX：045-334-6334<br>
-</p>
+<div id="comment">
+<h4>※お待ちの番号が過ぎてしまったときは、フロア案内の職員等にお声をおかけください。</h4>
+<h4>※待ち時間について</h4>
+<p><a href="./">PC版</a>の画面では待ち時間の目安も表示していますので併せてご利用ください。</p>
+<h4>※受付番号について</h4>
+<p>７番窓口は 1～300、８番窓口は 301～600、９番窓口は 601～800、13番窓口は 801～900 の番号を順番に発券し受け付けています。上限まで番号を使い切ると最初の番号に戻ります。</p>
+<h4>※受付時間について…</h4>
+<p>月曜日から金曜日までは<strong>午前８時４５分から午後５時まで</strong>、第２・第４土曜日は<strong>午前９時から正午まで</strong>です。</p>
 
+<h4>【お問合せ先】</h4>
+<p>保険年金課国民年金係　TEL：045-334-6332、FAX：045-334-6334</p>
+<p>保険年金課保険係　　　　TEL：045-334-6335、FAX：045-334-6334</p>
+
+</div><!-- end  [id=comment] -->
 </div><!-- end  [class=contents-block] -->
 
 </div>

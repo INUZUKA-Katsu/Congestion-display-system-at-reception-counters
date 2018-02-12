@@ -1,4 +1,4 @@
-# -*- coding: Shift_JIS -*-
+# -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
 #   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.2 (2015.2.20)            #
 #                                                                                #
@@ -8,7 +8,7 @@
 #                        著作権  横浜市                                          #
 #--------------------------------------------------------------------------------#
 
-Encoding.default_external="Shift_JIS"
+Encoding.default_external="Windows-31J"
 
 #****作業ディレクトリの設定****
 Dir.chdir(__dir__)
@@ -30,7 +30,7 @@ load './config_for_development.txt' if [2,3,4,5].include?($test_mode) and $devel
 
 #****テストモード４のときはここで終了****
 if $test_mode==4
-  fname=File.basename(__FILE__).force_encoding("Shift_JIS")
+  fname=File.basename(__FILE__).force_encoding("Windows-31J")
   puts "テストモード４なので「#{fname}」は実行しません。"
   exit
 end

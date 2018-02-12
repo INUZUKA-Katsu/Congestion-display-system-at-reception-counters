@@ -15,12 +15,11 @@
 
 <!-- ↓保険年金課窓口混雑状況CSS↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
 <link rel="StyleSheet" href="./css/image.css" type="text/css" media="screen,tv,projection,print">
-<!-- 枠用CSS -->
-<link rel="StyleSheet" href="./css/width1.css" type="text/css" media="screen and (min-width: 500px),tv,projection,print">
-<link rel="StyleSheet" href="./css/mado-new.css" type="text/css">
+<link rel="StyleSheet" href="./css/mado.css" type="text/css">
 <style type="text/css"><!-- span.red{font-weight:bold;color:#ff0000;} --></style>
 <script type="text/JavaScript" src="./kyugyobi.js"></script>
-<meta http-equiv="refresh" content="60">
+<link rev="MADE" href="mailto:ho-hokennenkin@city.yokohama.jp"> 
+
 <!-- ↑保険年金課窓口混雑状況CSS↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ -->
 
 </head>
@@ -68,7 +67,7 @@
 		</div>
 	</div>
 
-	<a href="http://www.city.yokohama.lg.jp/hodogaya/" name="top"><img src="http://www.city.yokohama.lg.jp/hodogaya/images/hodogaya-logo.gif" alt="保土ケ谷区ヘッダー" widht="250"></a>
+	<a href="http://www.city.yokohama.lg.jp/hodogaya/" name="top"><img src="http://www.city.yokohama.lg.jp/hodogaya/images/hodogaya-logo.gif" alt="保土ケ谷区ヘッダー" width="250"></a>
 </div>
 <!-- ↑保土ケ谷区ヘッダー -->
 
@@ -111,39 +110,65 @@
 <div class="contents-block">
 
 <!-- ■■■↓ページタイトルを入力↓■■■ --><!-- ■■■ ここから1段組 ■■■ -->
-<h3>トピック</h3>
-<!--madoguchiTopics-->
-<h4>１３番（保険係・収納担当）～１３番窓口ができました。～</h4>
-<p>7月22日（火）から13番窓口ができました。これまで7番窓口で取り扱っていた業務のうち、国民健康保険と介護保険の<strong>保険料の納付、納付相談</strong>を専門に取り扱います。保険料の納付に関するご相談は13番窓口にお越しください。<br>なお、後期高齢者医療制度の保険料については、これまでどおり、8番窓口でお取扱いします。</p>
+
+<h3 class="inline">トピック</h3>
+<div class="shortcut">
+	<a href="#jokyo">トピックをスキップして、すぐに今の窓口状況を見る。</a>
+</div>
+	<div class="madoKon-EmgMessege">
+<!-- ↓窓口混雑状況 緊急メッセージ用 ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
+	<!--madoguchiTopics-->
+<!-- ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ -->
+	</div>
+
+<h4><a href="web-accessibility.html">窓口混雑状況ページのウェブアクセシビリティ方針</a></h4>
 
 <h4>７番（保険係・資格賦課担当）</h4>
-<p>月初め及び休み明けの月曜日は、社会保険からの切り替えなどで窓口が混雑する場合があります。<br>申し訳ございませんが、ご理解、ご協力をお願いします。</p>
+<p>年度初めの４月上旬、とりわけ４月１日や月曜日は、社会保険からの切り替えや引越しなどで窓口がたいへん混雑します。なにとぞ、ご理解、ご協力をお願いします。</p>
+<!--p>月初め、月曜日、祝日の翌日は、社会保険からの切り替えなどで窓口が混雑する場合があります。</p-->
+<p><a href="http://www.city.yokohama.lg.jp/hodogaya/madoguti/doyou-kaichou.html">土曜日の開庁日</a>は、11時ごろから混み合うことがあります。土曜日はお早目の時間にお出でになることをおすすめします。</p>
 
 <h4>８番（保険係・給付担当）</h4>
-<!--p><span class="red">７月22日(火)から７月28日(月)まで</span>は、後期高齢者医療制度の保険料についてのお問合せや高額療養費の申請手続きのために、大勢の方が来庁され、８番窓口は<span class="red">たいへん混雑することが予想されます。中でも22日(火)に来庁されるお客様が多いと思われます。</span>このため、窓口で長時間お待ちいただく場合がありますので、ご理解とご協力をお願いいたします。</p-->
-<p>毎月下旬は、高額療養費の申請手続きのため多数の方が８番窓口に来庁され、長時間お待ちいただく場合があります。ご理解ご協力をお願いいたします。</p>
+<p>毎月下旬は、高額療養費の申請手続きのため多数の方が８番窓口に来庁され、長時間お待ちいただく場合があります。ご理解、ご協力をお願いいたします。</p>
 
-<h4>⇒<a href="mado-jokyo-suii-machisu.html">昨日までの窓口混雑状況</a></h4>
+<h4>１３番（保険係・収納担当）</h4>
+<p>国民健康保険、介護保険、後期高齢者医療の保険料の納付に関するご相談は13番窓口にお越しください。</p>
+
+<h4><a href="mado-jokyo-suii-machisu.html">昨日までの窓口混雑状況</a></h4>
 <!--TOPIC-->
 
-<p id="genzai"><!--TIME--><span id="kyugyobi"></span></p>
-
-<table border="0" cellspacing="0" cellpadding="0" align="center" class="table_box">
+<a name="jokyo"></a>
+<h3>現在の受付番号とお待ちの方の人数</h3>
+<table class="table_box" summary="窓口番号、取扱い業務、現在の受付番号、待ち人数、概況">
+  <caption>
+    <div id="genzai">
+      <!--TIME-->の状況
+      <span id="kyugyobi">
+        <a href="javascript:location.reload();">最新の情報に更新</a>
+      </span>
+    </div>
+  </caption>
   <thead>
   <tr>
-    <th scope="col" nowrap class="table_box_l madoNo">窓口番号</th>
-    <th scope="col" nowrap class="table_box_l gyoumu">お取扱い業務</th>
-    <th scope="col" nowrap class="table_box_l uketukeNo">ただ今の<br>受付番号</th>
-    <th scope="col" nowrap class="table_box_l machi">待ち人数</th>
-    <th scope="col" nowrap class="biko">備考</th>
+    <th scope="col" class="madoNo">窓口番号</th>
+    <th scope="col" class="gyoumu" abbr="取扱業務">お取扱い業務</th>
+    <th scope="col" class="uketukeNo" abbr="受付番号">ただ今の受付番号</th>
+    <th scope="col" class="machi">待ち人数</th>
+    <th scope="col" class="biko">備考</th>
   </tr>
   </thead>
   <tbody>
-  <tr class="table_box_bg">
-    <th scope="row" class="madoNo">７番</th>
+  <tr>
+    <th scope="row" class="madoNo"><h4 class="thead">７番</h4></th>
     <td class="gyoumu">
        <ul>
-       <li><strong>国民健康保険・介護保険</strong><br>加入・資格喪失の届出、被保険者証、保険料の額に関すること</li>
+         <li>国民健康保険・介護保険
+           <ul>
+             <li>加入・資格喪失の届出、</li>
+             <li>被保険者証、</li>
+             <li>保険料の額に関すること</li>
+           </ul>
+         </li>
        </ul>
     </td>
     <td class="uketukeNo"><!--7-BANGO--></td>
@@ -155,11 +180,16 @@
     	</dl>
     </td>
   </tr>
-  <tr class="table_box_bg">
-    <th scope="row" class="madoNo">13番</th>
+  <tr>
+    <th scope="row" class="madoNo"><h4 class="thead">13番</h4></th>
     <td class="gyoumu">
        <ul>
-       <li><strong>国民健康保険・介護保険</strong><br>保険料の納付、納付相談</li>
+         <li>国民健康保険・介護保険
+           <ul>
+             <li>保険料の納付、</li>
+             <li>納付相談</li>
+           </ul>
+         </li>
        </ul>
     </td>
     <td class="uketukeNo"><!--13-BANGO--></td>
@@ -171,13 +201,28 @@
     	</dl>
     </td>
   </tr>
-  <tr class="table_box_bg">
-    <th scope="row" class="madoNo">８番</th>
+  <tr>
+    <th scope="row" class="madoNo"><h4 class="thead">８番</h4></th>
     <td class="gyoumu">
        <ul>
-       <li><strong>国民健康保険・介護保険</strong><br>高額療養費、負担限度額認定証、出産育児一時金、住宅改修、その他給付</li>
-       <li><strong>後期高齢者医療</strong><br>加入・資格喪失の届出、被保険者証、保険料、高額療養費、その他</li>
-       <li><strong>小児・重度障害者・ひとり親家庭の医療費助成</strong></li>
+         <li>国民健康保険・介護保険
+           <ul>
+             <li>高額療養費、</li>
+             <li>負担限度額認定証、</li>
+             <li>出産育児一時金、</li>
+             <li>住宅改修、</li>
+             <li>その他給付</li>
+           </ul>
+         </li>
+         <li>後期高齢者医療
+           <ul>
+             <li>加入・資格喪失の届出、</li>
+             <li>被保険者証、</li>
+             <li>保険料、</li>
+             <li>高額療養費、その他</li>
+           </ul>
+         </li>
+         <li>小児・重度障害者・ひとり親家庭の医療費助成</li>
        </ul>
     </td>
     <td class="uketukeNo"><!--8-BANGO--></td>
@@ -189,11 +234,17 @@
       </dl>
     </td>
   </tr>
-  <tr class="table_box_bg">
-    <th scope="row" class="madoNo">９番</th>
+  <tr>
+    <th scope="row" class="madoNo"><h4 class="thead">９番</h4></th>
     <td class="gyoumu">
        <ul>
-       <li><strong>国民年金</strong><br>加入手続、保険料の免除・学生納付特例の申請、裁定請求（障害基礎年金・遺族基礎年金など）</li>
+         <li>国民年金
+           <ul>
+             <li>加入手続</li>
+             <li>保険料の免除・学生納付特例の申請</li>
+             <li>裁定請求（障害基礎年金・遺族基礎年金など）</li>
+           </ul>
+         </li>
        </ul>
     </td>
     <td class="uketukeNo"><!--9-BANGO--></td>
@@ -208,20 +259,19 @@
   </tbody>
 </table>
 
-<dl class="comment">
-<dt>※待ち時間について…</dt>
-<dd>備考欄の待ち時間の記載はひとつの目安です。この時間を超えてお待ちいただくこともありますので、ご了承ください。</dd>
-<dt>※受付番号について…</dt>
-<dd>７番窓口は 1～300、８番窓口は 301～600、９番窓口は 601～800、13番窓口は801～900 の番号を順番に発券し受け付けています。上限まで番号を使い切ると最初の番号に戻ります。</dd>
-<dt>※受付時間について…</dt>
-<dd>月曜日から金曜日までは<strong>午前８時４５分から午後５時まで</strong>、第２・第４土曜日は<strong>午前９時から正午まで</strong>です。</dd>
-</dl>
+<div id="comment">
+  <h4>※待ち時間について</h4>
+  <p>備考欄の待ち時間の記載はひとつの目安です。この時間を超えてお待ちいただくこともありますので、ご了承ください。</p>
+  <h4>※受付番号について</h4>
+  <p>７番窓口は 1～300、８番窓口は 301～600、９番窓口は 601～800、13番窓口は801～900 の番号を順番に発券し受け付けています。上限まで番号を使い切ると最初の番号に戻ります。</p>
+  <h4>※受付時間について</h4>
+  <p>月曜日から金曜日までは<strong>午前８時４５分から午後５時まで</strong>、第２・第４土曜日は<strong>午前９時から正午まで</strong>です。</p>
 
-<p>【お問合せ先】<br>
-保険年金課国民年金係　TEL：045-334-6332、FAX：045-334-6334<br>
-保険年金課保険係　　　　TEL：045-334-6335、FAX：045-334-6334<br>
-</p>
+<h4>【お問合せ先】</h4>
+<p>保険年金課国民年金係　TEL：045-334-6332、FAX：045-334-6334</p>
+<p>保険年金課保険係　　　　TEL：045-334-6335、FAX：045-334-6334</p>
 
+</div><!-- end  [id=comment] -->
 </div><!-- end  [class=contents-block] -->
 
 </div>
@@ -234,10 +284,10 @@
 <!-- ↓保険年金課窓口混雑状況モバイル用リンク↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
 
 <div id="Smart">
-	<a href="mado-jokyo-m.html" class="pc">スマートフォン・携帯版</a>
+	<a href="mado-jokyo-m.html" class="pc">スマートフォン・携帯向けページへ</a>
 </div>
 <div class="clearfix" style="margin-top:10px;">
-	<a href="./mado-jokyo-m.html"><img alt="QRコード" src="./image/qr.gif" width="100"height="100" style="float:left;"></a>
+	<img alt="スマートフォン・携帯向けページのURLのQRコード" src="./image/qr.gif" width="100" height="100" style="float:left;">
 	<div style="padding-top:10px;">携帯からも窓口混雑情報をご覧いただけます。</div>
 </div>
 <br>

@@ -14,13 +14,8 @@
 <link rel="StyleSheet" href="http://www.city.yokohama.lg.jp/hodogaya/css/contents/print.css" type="text/css" media="print">
 
 <!-- ↓保険年金課窓口混雑状況CSS↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
-<link rel="StyleSheet" href="./css/mado-new.css" type="text/css">
-<link rel="StyleSheet" href="./css/suii-new.css" type="text/css">
-<style type="text/css">
-    <!--
-        th.biko { border-right : solid 1px #fff;}
-    -->
-</style>
+<link rel="StyleSheet" href="./css/mado.css" type="text/css">
+<link rel="StyleSheet" href="./css/suii.css" type="text/css">
 <script type="text/JavaScript" src="./kyugyobi.js"></script>
 
 <!-- ↑保険年金課窓口混雑状況CSS↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ -->
@@ -90,7 +85,7 @@
 
 
 
-<a href="http://www.city.yokohama.lg.jp/hodogaya/">トップ</a>&nbsp;&gt;&nbsp;
+<a href="http://www.city.yokohama.lg.jp/hodogaya/">トップ</a><img src="./image/space.gif" alt="">&gt;<img src="./image/space.gif" alt="">
 <!-- フォルダ非表示あり(最大5階層まで対応) -->
 <!-- 第1階層の情報取得 -->
 <!-- ↓保険年金課窓口混雑状況用ぱんくずリスト↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
@@ -101,7 +96,7 @@
 </p>
 <!-- ↓保土ケ谷区MAIN::サイドメニュー＆コンテンツ ************************************************** -->
 <!-- ↓保土ケ谷区 TOPページ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
-<div id="CONTENT"></div>
+<div id="CONTENT"></div><a name="CONTENT"></a>
 <div id="hodogaya-contents">
 
 	<!--div class="contents"-->
@@ -113,7 +108,7 @@
 <div class="contents-block">
 
 <!-- ■■■↓ページタイトルを入力↓■■■ --><!-- ■■■ ここから1段組 ■■■ -->
-<h3></h3>
+
 
 <h4>グラフは来庁されたお客様の１時間ごとの人数を表わしています。</h4>
 <p>例：9時の人数は、9時0分から９時59分までに発券したお客様の数です。</p>
@@ -130,7 +125,8 @@
 </div>
 <!--TOPIC-->
 
-<table class="table_box">
+<table class="table_box" summary="今週の各曜日、窓口、時間帯ごとの来庁者数">
+  <caption>今週の各曜日の混雑状況</caption>
   <thead>
   <tr>
     <th scope="col" nowrap class="table_box_l madoNo">窓口番号</th>
@@ -139,19 +135,19 @@
   </thead>
   <tbody>
   <tr class="table_box_bg">
-    <th scope="row" nowrap class="madoNo">７番</th>
+    <th scope="row" nowrap class="madoNo"><h4>７番</h4></th>
       <!--7-SUII-->
   </tr>
   <tr class="table_box_bg">
-    <th scope="row" nowrap class="madoNo">13番</th>
+    <th scope="row" nowrap class="madoNo"><h4>13番</h4></th>
       <!--13-SUII-->
   </tr>
   <tr class="table_box_bg">
-    <th scope="row" nowrap class="madoNo">８番</th>
+    <th scope="row" nowrap class="madoNo"><h4>８番</h4></th>
       <!--8-SUII-->
   </tr>
   <tr class="table_box_bg">
-    <th scope="row" nowrap class="madoNo">９番</th>
+    <th scope="row" nowrap class="madoNo"><h4>９番</h4></th>
       <!--9-SUII-->
   </tr>
   </tbody>
@@ -161,19 +157,15 @@
   <!--public-use--><a href="index.html">現在の受付番号と待ち人数にもどる</a>
   <!--local-use--><a href="../現在受付中番号のお客様の状況.html">モニター画面（現在受付中番号のお客様の状況）にもどる</a>
 </div>
-<dl class="comment">
-<dt>※「今週」について…</dt>
-<dd>今日が月曜日（今週の初日）のときは先週の情報を掲載しています。</dd>
-<dt>※人数について…</dt>
-<dd>各１時間の間に来庁されたお客様の人数を掲載しています。</dd>
-<dt>※受付時間について…</dt>
-<dd>月曜日から金曜日までは<strong>午前８時４５分から午後５時まで</strong>、第２・第４土曜日は<strong>午前９時から正午まで</strong>です。</dd>
-</dl>
-
-<p>【お問合せ先】<br>
-保険年金課国民年金係　TEL：045-334-6332、FAX：045-334-6334<br>
-保険年金課保険係　　　　TEL：045-334-6335、FAX：045-334-6334<br>
-</p>
+<div id="comment">
+  <h4>※人数について</h4>
+    <p>各１時間の間に来庁されたお客様の人数を掲載しています。</p>
+  <h4>※受付時間について</h4>
+    <p>月曜日から金曜日までは<strong>午前８時４５分から午後５時まで</strong>、第２・第４土曜日は<strong>午前９時から正午まで</strong>です。</p>
+  <h4>【お問合せ先】<h4>
+    <p>保険年金課国民年金係　TEL：045-334-6332、FAX：045-334-6334</p>
+    <p>保険年金課保険係　　　　TEL：045-334-6335、FAX：045-334-6334</p>
+</div><!-- end  [id=comment] -->
 
 </div><!-- end  [class=contents-block] -->
 

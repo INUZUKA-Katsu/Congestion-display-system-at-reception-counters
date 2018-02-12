@@ -1,8 +1,27 @@
-    <html>
-      <head>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS">
+    <meta http-equiv="Content-Style-Type" content="text/css">
+    <meta content="text/javascript" http-equiv="Content-Script-Type">
         <style type="text/css">
         <!--
-          div {text-align:center;}
+          div {
+              text-align:center;
+          }
+          #note {
+              margin-right:auto;
+              margin-left:auto;
+              text-align:left;
+              width:40em;
+              font-size:1em;
+              line-height:1.5em;
+              margin-top:1.5em;
+              padding:0.5em ;
+              border-width: thin;
+              border-color: red;
+              border-style: solid;
+          }
           div.uketukechu table td {font-size:130%;}
           table {
               margin-right:auto;
@@ -14,6 +33,7 @@
               background-color:#ffffff;
               empty-cells:show;
           }
+          caption.mode{text-align:right;}
           th{
               border-right:1px solid #663300;
               border-bottom:1px solid #663300;
@@ -30,30 +50,115 @@
               border-bottom:1px solid #663300;
               padding:0.3em 1em;
           }
+          .sound{
+              font-weight:normal;
+              font-size:0.8em;
+          }
           .alert{
              font-size:150%;
              color:red;
           }
+          .just_before{
+             margin-top:0.2em;
+             font-size:80%;
+             font-weight:400;
+          }
         -->
         </style>
         <meta http-equiv="refresh" content="60">
+        <audio id="CSound0" preload="auto"><source src="./css/sound1.mp3" type="audio/mp3"></audio>
+        <audio id="CSound1" preload="auto"><source src="./css/sound2.mp3" type="audio/mp3"></audio>
+        <audio id="CSound2" preload="auto"><source src="./css/sound3.mp3" type="audio/mp3"></audio>
+        <audio id="CSound3" preload="auto"><source src="./css/sound4.mp3" type="audio/mp3"></audio>
+        <script type="text/javascript">
+             var storage = localStorage;
+             var mp3     = new Array();
+                 mp3[0]  = document.getElementById("CSound0");
+                 mp3[1]  = document.getElementById("CSound1");
+                 mp3[2]  = document.getElementById("CSound2");
+                 mp3[3]  = document.getElementById("CSound3");
+             function condition(i){
+<JOKEN>
+             }
+             function setcookie(val) {
+                 i=parseInt(val.name.charAt(val.name.length - 1),10);
+                 if (val.value == "off"){
+                     try {
+                         mp3[i].pause();
+                     } catch(e) {
+                         console.log("Error" + e);
+                     }
+                 }
+                 sound_play();
+                 setlocalStorage(val.name,val.value);
+             }
+             function get_checked(name){
+               var rdo = document.getElementsByName(name)
+               if (rdo[0].checked) {
+                  return rdo[0].value;
+               }else{
+                  return rdo[1].value;
+               }
+             }
+             function sound_play(){
+                 for (var i=0;i<4;i++){
+                     if (condition(i) && get_checked("mado"+ String(i))=="on"){
+                         try{
+                             mp3[i].play();
+                         }catch(e){
+                             console.log("Error" + e);
+                         }
+                     }
+                 }
+             }
+             function start() {
+                 readStorage();
+                 sound_play();
+             }
+             function setlocalStorage(mado,selected) {
+                 storage.setItem(mado,selected);
+             }
+             function readStorage() {
+                 if (!storage){
+                     return "Tere is not storage data.";
+                 }
+                 for (var i=0; i < storage.length; i++) {
+                     var _key = storage.key(i);
+                     var _val  = storage.getItem(_key);
+                     var rdo = document.getElementsByName(_key);
+                     if (rdo[0].value==_val){
+                         rdo[0].checked="checked";
+                     } else {
+                         rdo[1].checked="checked";
+                     }
+                 }
+             }
+             function view_mode(){
+                 document.write("レンダリング・モード: IE" + document.documentMode + "（<a href=\"#note\">※</a>）");
+             }
+        </script>
       </head>
-    <body>
-      <div style="text-align:right;"><a href="./suii/mado-jokyo-suii-hun.html">過去1週間の状況</a></div>
+    <body onLoad="start()">
+      <a name="top"></a>
+      <div style="text-align:right;"><a href="./mado-jokyo-suii-hun.html">過去1週間の状況</a></div>
       <div>
         <h2><GENZAI></h2>
         <h3>概　　況</h3>
         <div class="uketukechu">
           <table>
+          <caption class="mode"><script>view_mode();</script></caption>
           <tr>
             <th rowspan="2">窓口</th>
+            <th rowspan="2">現在の待ち人数<br><div class="just_before">(直前の待ち人数)</div></th>
             <th colspan="3">現在受付中のお客様</th>
-            <th rowspan="2">現在の<br>待ち人数</th>
-            <th rowspan="2">次に呼ぶ<br>お客様の<br>待ち時間</th>
+            <th colspan="2">次に呼ぶお客様</th>
             <th rowspan="2">直近の呼出しからの<br>経過時間</th>
+            <th rowspan="2">窓口停滞時の<br>警告サウンド</th>
           </tr>
           <tr>
             <th>番号</th>
+            <th>発券時の<br>待ち人数</th>
+            <th>待ち時間</th>
             <th>発券時の<br>待ち人数</th>
             <th>待ち時間</th>
           </tr>
@@ -72,6 +177,9 @@
           <tr><th>窓口</th><th>番号</th><th>発券時待ち人数</th><th>発券時刻→呼出時刻</th><th>待ち時間</th></tr>
           <SYURYO>
         </table>
+      </div>
+      <div id="note"><a name="note"></a>
+        警告サウンドを鳴らすためには、レンダリング・モードがIE9以上であることが必要です。インターネットエクスプローラ(IE)のバージョン7や8を使っている場合は9以上にバージョンアップしてください。IE9やIE11であるにも関わらず、レンダリング・モードがIE7などと表示される場合は、IEの右上の歯車マークをクリックし、「互換表示設定」を開き、「イントラネットサイトを互換表示で表示する」のチェックをはずしてみてください。(<a href="#top">トップに戻る</a>)
       </div>
    </body>
    </html>
