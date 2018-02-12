@@ -25,8 +25,8 @@ require './holiday_japan'
 
 #*** マイドキュメントフォルダ ***
 wsh = WIN32OLE.new('WScript.Shell')
-MYDOC=wsh.SpecialFolders('MyDocuments').encode("Windows-31J")
-DESKTOP=wsh.SpecialFolders('Desktop').encode("Windows-31J")
+MYDOC=wsh.SpecialFolders('MyDocuments').encode("Windows-31J").gsub("\\","/")
+DESKTOP=wsh.SpecialFolders('Desktop').encode("Windows-31J").gsub("\\","/")
 wsh=nil
 
 
@@ -273,6 +273,14 @@ END{
   lotation('error.log')
 }
 
+#***** 手動操作による業務終了処理かどうかの判定 *****
+def manually_operated_ending_process()
+  if ARGV[0]=="EndingProcess"
+    true
+  else
+    false
+  end
+end
 
 #***** メール *****
 def send_mail(title,body)
@@ -428,7 +436,6 @@ def bar_chart_imgtag(bar_type,su)
   size  = "width:#{bar_w(bar_type,su)};height:#{bar_h(bar_type)};"
   "<img src=\"#{image(su)}\" alt=\"\" style=\"#{size}\">"
 end
-
 
 class String
   #*** 文字列中の半角数字を全角数字に変換 ***

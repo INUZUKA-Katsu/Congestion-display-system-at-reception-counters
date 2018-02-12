@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.4 (2016.2.17 )           #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.4.4 (2017.8.6)           #
 #                                                                                #
 #                       過去ログの分析編                                         #
 #                                                                                #
@@ -202,6 +202,8 @@ def make_html_of_week(day,use=:public)
   kubuns=kubuns.reject{|key| key.to_s=~/sya_?su/} if use==:public
   kubuns.each do |kubun|
     f=File.read(Myfile.hinagata(kubun))
+    #インターネットから分離された課内モニター用に外部サイトへのリンクを置換え
+    $src_replace.each{|k,v| f.gsub!(k,v)} if $src_replace and use==:local
     #表頭
     f.gsub!(/<!--DAY-->/)              {|d| html_th(days)}
     #表のコンテンツ
@@ -233,6 +235,9 @@ end
 
 #内部モニター用のリンクを作成
 def make_link(str,day)
+  #インデックスページへのリンク(2017.8.6)
+  l='<a href="index.html">週別インデックスページへ</a>'
+  str.sub!(/(前の週.*?&nbsp;.*?　)(　+)(　.*?&nbsp;.*?<!--)/m){|w| $1+l+$3}
   #前後の週や他の区分のページへのリンク
   #今週のページ
   if day.this_week?
@@ -247,7 +252,7 @@ def make_link(str,day)
   #先週より前のページ
   else
     str.gsub!(/<!--PreviousWeek-->/)   {|w| (day-7).previous_monday}
-    str.gsub!(/<!--NextWeek-->/)       {|w| (day+7).previous_monday}      
+    str.gsub!(/<!--NextWeek-->/)       {|w| (day+7).previous_monday}
     str.gsub!(/<!--ThisWeek-->/)       {|w| day.previous_monday}
   end
   #公開ページ用のリンクと不要なタグを削除する
@@ -261,15 +266,18 @@ def make_html_of_3_weeks(day)
   files << make_html_of_week(day,:local)
   files << make_html_of_week(day-7,:local)
   files << make_html_of_week(day-14,:local)
-  files.flatten
+  files
 end
 
 def make_suii_for_monitor
+  #3週間分のページをtempフォルダに作成し共有フォルダに複写する。
   files=make_html_of_3_weeks(Today)
-  files.each do |file|
-    to=Myfile.dir(:suii)
-    FileUtils.cp(file,to)
-  end
+  to=Myfile.dir(:suii)
+  FileUtils.cp(files.flatten,to)
+  #インデックスページを更新する。共有フォルダにファイル名を変更して複写。
+  index=modify_index(files)
+  to=Myfile.dir(:suii)+"/index.html"
+  FileUtils.cp(index,to)
 end
 
 #***** HTMLの修正（「今週」⇒「先週」） *****
@@ -291,6 +299,82 @@ def modify_html_of_week()
   files
 end
 
+#週別の推移をインデックスページに記載する。
+#既存のファイルがあるときは新データを加えて更新し、ないときはページを新しく作る。
+def modify_index(files)
+  temp_file=Myfile.dir(:temp)+"/suii-index.html"
+  if File.exist? temp_file
+    f=File.read(temp_file)
+    rows=f.scan(/<tr>.*?<\/tr>/)
+    new_rows=make_index_rows_array(files)
+    rows.delete_if{|r| new_rows.find{|n| n[8,8]==r[8,8]}}
+    rows=new_rows+rows
+    html=make_index_file_from_rows(rows)
+  else
+    html=make_index_file(files)
+  end
+  File.write(temp_file,html)
+  temp_file
+end
+
+# 週別推移のファイル名配列からhtml形式の行データ（<tr>・・・</tr>）配列を生成する。
+def make_index_rows_array(files)
+  kubuns=[]
+  rows=[]
+  Myfile.keys_of_suii.each do |k|
+    case k
+    when :suii_hun    ; kubuns << "待ち時間"
+    when :suii_syasu  ; kubuns << "来庁者数"
+    when :suii_machisu; kubuns << "待ち人数"
+    else
+      popup "推移のひな形の設定とプログラムがマッチしていません。エラー箇所：suii.rbのmake_index_rows_array",48,"推移の種別エラー"
+      raise
+    end
+  end
+  files.sort!{|a,b| b[0]<=>a[0]}
+  files.each{|a| a.map!{|f| File.basename(f)}}
+  files.each_with_index do |a,i|
+    if i==0
+      d=($&+7).sub!(/(\d{4})(\d{2})(\d{2})/,'\1/\2/\3') if files[1][0].match(/\d{8}/)
+      a.unshift(d) if d
+    else
+      d=$&.sub(/(\d{4})(\d{2})(\d{2})/,'\1/\2/\3') if a[0].match(/\d{8}/)
+      a.unshift(d) if d
+    end
+    str  = "<tr><td>#{a[0]}</td>"
+    str += "<td><a href=\"#{a[1]}\">#{kubuns[0]}</a></td>"
+    str += "<td><a href=\"#{a[2]}\">#{kubuns[1]}</a></td>"
+    str += "<td><a href=\"#{a[3]}\">#{kubuns[2]}</a></td></tr>"
+    rows<<str
+  end
+  rows
+end
+
+# html形式の行データ（<tr>・・・</tr>）配列からhtmlファイルを生成する。
+def make_index_file_from_rows(rows)
+  rows.sort!{|a,b| b[0]<=>a[0]}
+  str='<html lang="ja"><head><meta charset="Shift_JIS"><style type="text/css"><!--div{text-align:center;}h1{font-size:200%}table,th,td{background-color:#ffffee;border-collapse:collapse;border:2px solid #006e2c;padding:0.3em 2em;font-size:110%;}table{margin-left:auto;margin-right:auto}--></style></head><body><a name="top"></a><div><h1>窓口混雑状況　週別インデックス</h1><p><a href="../<!--MONITOR-->">モニター画面（現在受付中番号のお客様の状況）にもどる</a></p><table><!--TABLE--></table><a href="#top">トップへ</a></div></body></html>'
+  str.sub("<!--TABLE-->",rows.join).sub("<!--MONITOR-->",Myfile.file_name(:monitor))
+end
+
+def make_index_file_from_rows_another(rows)
+  rows.sort!{|a,b| b[0]<=>a[0]}
+  f=File.read(Myfile.hinagata(:suii_hun))
+  tbl='<table class="table_box" style="margin:0.5em auto !important;">'
+  f.sub!(/<table(.*?)table>/m, tbl + rows.join + '</table>' )
+  f.sub!(/<h1>(.*?)<\/h1>/,    '<h1>窓口混雑状況　週別インデックス</h1>' )
+  f.sub!(/<h4>(.*?)<\/h4>/,        '' )
+  f.gsub!(/(<!--local-use-->)(.*モニター画面.*\n)/,'\2' )
+  f.gsub!(/<!--local-use-->.*\n/,  '' )
+  f.gsub!(/<!--public-use-->.*\n/, '' )
+  f.sub!(/<\/head>/,'<style type="text/css"><!--td{padding:0.5em 3em!important;font-size:110%;}--></style>\n</head>')
+  f
+end
+
+#*******************************************************************************
+# 以下は通常の運用とは別にマニュアル操作で週別の推移ページ等を一括作成するためのオプション機能
+#*******************************************************************************
+
 #任意の期間について1週間ごとの推移のhtmlを作成する。
 def make_suii_during_optional_period(day1,day2=Today,use=:local)
   day=day1
@@ -307,16 +391,43 @@ def make_suii_during_optional_period(day1,day2=Today,use=:local)
   files
 end
 
-
-#指定期間のhtmlを作成して所定のフォルダに保存する。
-if 1==0
-  files=make_suii_during_optional_period("20140512","20140517",:local)
-  files.each do |file|
-    to=Myfile.dir(:suii)
-    FileUtils.cp(file,to)
-  end
-  popup Myfile.dir(:suii) + " に保存しました。"
+# 週別推移のファイル名配列からインデックスページのhtmlファイルを生成する。
+def make_index_file(files)
+  rows=make_index_rows_array(files)
+  make_index_file_from_rows(rows)
 end
+
+# 指定期間のhtmlを作成して所定のフォルダに保存する。
+def rebuild_suii_for_monitor(sday,eday=Today)
+  files=make_suii_during_optional_period(sday,eday)
+  files
+end
+
+#マニュアル操作による課内モニター用週別ファイルの一括作成
+#suii.rbに”all”又は開始日(yyyymmdd形式)を引数として付加して起動した場合に作動する。
+#使用例  >cd c:\窓口混雑状況HPシステム
+#       >./ruby-dist/ruby suii.rb 20160401
+if ARGV[0]
+  start_day=""
+  if ARGV[0]=="all"
+    start_day=Dir.glob(Myfile.dir(:kako_log)+"/*.log").select{|l| l=~/\d{8}\.log/}.map{|l| l.match(/\d{8}/)[0]}.min
+  elsif ARGV[0]=~/^\d{8}/
+    start_day=$&
+  elsif ARGV[0] != "EndingProcess"
+    popup "パラメータが間違っています。"
+  end
+  unless start_day == ""
+    #週別推移のファイルをtempフォルダに作成し、共有フォルダに複写する。
+    files=make_suii_during_optional_period(start_day)
+    FileUtils.cp(files.flatten,Myfile.dir(:suii))
+    #週別推移のファイル名からインデックスのページをtempフォルダに作成し、共有フォルダに複写する。
+    index=modify_index(files)
+    to=Myfile.dir(:suii)+"/index.html"
+    FileUtils.cp(index,to)
+    popup Myfile.dir(:suii) + " に保存しました。"
+  end
+end
+
 
 #make_html_of_week("20140627",:public)
 #puts make_suii_during_optional_period("20150608","20150619",:local)

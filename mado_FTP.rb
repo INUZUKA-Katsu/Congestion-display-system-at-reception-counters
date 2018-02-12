@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.41 (2016.3.16)           #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.44 (2017.8.4)           #
 #                                                                                #
 #          HTLM生成、FTP送信編                                                   #
 #                                                                                #
@@ -20,8 +20,9 @@ require "./ObjectInitialize.rb" unless String.const_defined? :Today
 
 #***** 状況判定 *****
 def situation
+  return :before_open if $ku.kaicho > TimeNow
+  return :ending if manually_operated_ending_process()
   $syuryo_hun||=5
-  vc=VcallMonitor.new
   if $ku.heicho < TimeNow
     if File.exist?("#{MYDOC}/#{$logfolder}/#{Today}.log") and test_mode? == false
       return :ended
@@ -31,9 +32,6 @@ def situation
           ( $ku.heicho + 3.hour < TimeNow )
       return :ending
     end
-  end
-  if $ku.kaicho > TimeNow
-    return :before_open
   end
   :regular
 end
@@ -123,7 +121,7 @@ def hp_data_message(mado)
   case time_zone
   when "開庁前"
         message_kaicho_jikan
-  
+
   when "開庁時間"
     #開庁時間を過ぎているのに今日のデータが皆無の場合
     if RaichoList.sya_su==0
@@ -145,7 +143,7 @@ def hp_data_message(mado)
         machi_su=$logs[mado].machi_su
         $message.meyasu_jikan(mado,machi_su) if defined? $message
     end
-  
+
   when "閉庁後"
     if $logs[mado].machi_su > 0
         message_heicho_machiari
@@ -282,8 +280,12 @@ def 業務終了処理
   puts "業務終了処理完了！"
 
   #システムシャットダウン
-  mess="業務終了処理が完了しました。５分後にシャットダウンします。"
-  VcallMonitor.new.shutdown_pc(mess,5.minute) if $test_mode!=7
+  if manually_operated_ending_process()
+    mess="業務終了処理が完了しました。シャットダウンします。"
+    VcallMonitor.new.shutdown_pc(mess,0) if $test_mode!=7  else
+    mess="業務終了処理が完了しました。５分後にシャットダウンします。"
+    VcallMonitor.new.shutdown_pc(mess,5.minute) if $test_mode!=7
+  end
   exit
 end
 
