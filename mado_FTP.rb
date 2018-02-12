@@ -1,6 +1,6 @@
 # -*- coding: Shift_JIS -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.2.9 (2014.9.18)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.0 (2014.9.24)            #
 #                                                                                #
 #                           HTLM生成、FTP送信編                                  #
 #                                                                                #
@@ -159,7 +159,7 @@ def hp_data_graph(mado)
   str=""
   h.each do |ji,su|
     if su>0
-      str   << "<dt>#{ji.hour}時 #{su.to_s}人</dt><dd><span>#{"i" * su}</span></dd>"
+      str   << "<dt>#{ji.hour}時 #{su.to_s}人</dt><dd><span>#{"|" * su}</span></dd>"
     else
       str   << "<dt>#{ji.hour}時 #{su.to_s}人</dt><dd>&nbsp;</dd>"
     end
@@ -223,7 +223,9 @@ def teitai_keikoku_mail
       next_person_machi_jikan  = TimeNow - next_yobidashi_person.time(:hakken)
       if next_person_machi_jikan > kyoyou_jikan and keika_jikan > kyoyou_jikan
         title  = "【#{mado}番窓口注意】受付が停滞しています。"
-        body   = "#{mado}番窓口の受付が#{current_yobidashi_person.bango}番で止まっています（#{keika_jikan}分間経過）。"
+        body   = "#{mado}番窓口の受付が#{current_yobidashi_person.bango}番で止まっています。"
+        body   << "\n現在の番号の継続時間（停滞時間）：#{keika_jikan}分"
+        body   << "\n次の番号のお客様の待ち時間　　　：#{next_person_machi_jikan}分"
         send_mail(title,body)
       end
     end

@@ -17,7 +17,7 @@
 <link rel="StyleSheet" href="./css/image.css" type="text/css" media="screen,tv,projection,print">
 <!-- 枠用CSS -->
 <link rel="StyleSheet" href="./css/width1.css" type="text/css" media="screen and (min-width: 500px),tv,projection,print">
-<link rel="StyleSheet" href="./css/mado.css" type="text/css">
+<link rel="StyleSheet" href="./css/mado-new.css" type="text/css">
 <style type="text/css"><!-- span.red{font-weight:bold;color:#ff0000;} --></style>
 <script type="text/JavaScript" src="./kyugyobi.js"></script>
 <meta http-equiv="refresh" content="60">
@@ -129,15 +129,18 @@
 <p id="genzai"><!--TIME--><span id="kyugyobi"></span></p>
 
 <table border="0" cellspacing="0" cellpadding="0" align="center" class="table_box">
+  <thead>
   <tr>
-    <th nowrap class="table_box_l madoNo">窓口番号</th>
-    <th nowrap class="table_box_l gyoumu">お取扱い業務</th>
-    <th nowrap class="table_box_l uketukeNo">ただ今の<br>受付番号</th>
-    <th nowrap class="table_box_l machi">待ち人数</th>
-    <th nowrap class="biko">備考</th>
+    <th scope="col" nowrap class="table_box_l madoNo">窓口番号</th>
+    <th scope="col" nowrap class="table_box_l gyoumu">お取扱い業務</th>
+    <th scope="col" nowrap class="table_box_l uketukeNo">ただ今の<br>受付番号</th>
+    <th scope="col" nowrap class="table_box_l machi">待ち人数</th>
+    <th scope="col" nowrap class="biko">備考</th>
   </tr>
+  </thead>
+  <tbody>
   <tr class="table_box_bg">
-    <td class="madoNo">７番</td>
+    <th scope="row" class="madoNo">７番</th>
     <td class="gyoumu">
        <ul>
        <li><strong>国民健康保険・介護保険</strong><br>加入・資格喪失の届出、被保険者証、保険料の額に関すること</li>
@@ -153,7 +156,7 @@
     </td>
   </tr>
   <tr class="table_box_bg">
-    <td class="madoNo">13番</td>
+    <th scope="row" class="madoNo">13番</th>
     <td class="gyoumu">
        <ul>
        <li><strong>国民健康保険・介護保険</strong><br>保険料の納付、納付相談</li>
@@ -169,7 +172,7 @@
     </td>
   </tr>
   <tr class="table_box_bg">
-    <td class="madoNo">８番</td>
+    <th scope="row" class="madoNo">８番</th>
     <td class="gyoumu">
        <ul>
        <li><strong>国民健康保険・介護保険</strong><br>高額療養費、負担限度額認定証、出産育児一時金、住宅改修、その他給付</li>
@@ -187,7 +190,7 @@
     </td>
   </tr>
   <tr class="table_box_bg">
-    <td class="madoNo">９番</td>
+    <th scope="row" class="madoNo">９番</th>
     <td class="gyoumu">
        <ul>
        <li><strong>国民年金</strong><br>加入手続、保険料の免除・学生納付特例の申請、裁定請求（障害基礎年金・遺族基礎年金など）</li>
@@ -202,6 +205,7 @@
       </dl>
     </td>
   </tr>
+  </tbody>
 </table>
 
 <dl class="comment">

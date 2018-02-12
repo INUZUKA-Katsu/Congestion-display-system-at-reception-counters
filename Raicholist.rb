@@ -1,6 +1,6 @@
 # -*- coding: Shift_JIS -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.2.9 (2014.9.18)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.1 (2014.10.27)           #
 #                                                                                #
 #        <<オブジェクト定義、ユーティリティメソッド及びオプション機能>>          #
 #                                                                                #
@@ -20,6 +20,7 @@ require 'nkf'
 require 'net/smtp'
 require "date"
 require "./holiday_japan"
+
 
 #*** マイドキュメントフォルダ ***
 wsh = WIN32OLE.new('WScript.Shell')
@@ -536,6 +537,9 @@ class String
       cdays << line.chomp.gsub(/("|　)/,"").split
     end
     cdays.select{|d| self.variation.include? d[0]}.map{|d| d[1]}.uniq
+  end
+  def closed(mado)
+    self.closed_mado.include?(mado)
   end
   def kaichobi?
     return nil unless self.match(/^\d{8}$/)
@@ -1192,10 +1196,35 @@ class LogEvents
       line_ary << Event.new(time,kubun_code,sym[kubun_code],mado,bango)
     end
     #Prolog.csvは時刻同一の場合に番号が逆転する場合があるのでソートする。
-    line_ary=line_ary.sort_by do |event|
-      [event.time,event.kubun_code,event.bango]
-    end
+    line_ary=sort(line_ary)
     self.new(line_ary)
+  end
+  #*** ソート *** 2014.10.27 inuzuka
+  # 時刻、イベント区分コード、番号をキーにして昇順に並び替え
+  # 但し、同一時刻に最終番号から最小番号に戻ったときは番号の降順を維持する。
+  def self.sort(line_ary)
+    $mado_array.each do |mado|
+      max=$bango[mado].max
+      times=line_ary.select{|event| event.kubun_code==0 and event.bango==max}.map{|event| event.time}
+      times.each do |t|
+        line_ary=line_ary.map do |event|
+          if event.time==t and event.kubun_code==0
+            if event.bango > max-20
+              event.time=event.time+"0"
+            else
+              event.time=event.time+"1"
+            end
+          end
+          event
+        end
+      end
+    end
+    line_ary.sort_by do |event|
+      [event.time,event.kubun_code,event.bango]
+    end.map do |event|
+      event.time=event.time[0,5]
+      event
+    end
   end
   #*** 窓口番号と番号の整合性チェック ***
   def self.error_data?(log_file,mado,bango,mode)
@@ -1284,7 +1313,7 @@ end
 #*** 来庁者リストクラス ***
 class RaichoList
   include Enumerable
-  attr_accessor :log_file,:mado,:raicholist
+  attr_accessor :log_file,:mado,:raicholist,:day
   def initialize(log_file=nil,mado=nil,day=nil)
     @log_file=log_file
     @mado=mado
@@ -1648,7 +1677,7 @@ class RaichoList
     return su if self.log_file==nil #2014.6.25 ダミーオブジェクトと空データを区別
     seiji=kaichojikan.mai_seiji
     seiji.each do |ji|
-      break if TimeNow < ji and self.log_file==Myfile.file(:log) #2014.4.28 2つ目の条件付加
+      break if self.log_file==Myfile.file(:log) and TimeNow < ji #2014.9.27 2つの条件の順序を逆転
       case compare_mode
       when :yes
         sya=self.complete.hakken_sya_just_before(ji) # machi_hunと同一の来庁者のデータとするためキャンセルした来庁者を除外
@@ -1669,7 +1698,7 @@ class RaichoList
     return su if self.log_file==nil #2014.6.25 ダミーオブジェクトと空データを区別
     seiji=kaichojikan.mai_seiji
     seiji.each do |ji|
-      break if TimeNow < ji  and self.log_file==Myfile.file(:log) #2014.4.28 2つ目の条件付加
+      break if self.log_file==Myfile.file(:log) and TimeNow < ji #2014.9.27 条件の順序を逆転
       sya=self.complete.hakken_sya_just_before(ji) # キャンセルした来庁者を除外
       if sya.id==nil and ji==seiji[0]              # 開庁後最初の正時(9時)でまだ来庁者がないとき 2014.7.19
         hun[ji]=0
@@ -1686,7 +1715,7 @@ class RaichoList
     su=Hash.new
     return su if self.log_file==nil #2014.6.25 ダミーオブジェクトと空データを区別
     kaichojikan.mai_ji.each do |ji|
-      break if TimeNow < ji.to_hhmm and self.log_file==Myfile.file(:log) #2014.4.28 2つ目の条件付加
+      break if self.log_file==Myfile.file(:log) and TimeNow < ji.to_hhmm #2014.9.27 条件の順序を逆転
       su[ji]=self.jikan_betsu_sya_su(ji)
     end
     su

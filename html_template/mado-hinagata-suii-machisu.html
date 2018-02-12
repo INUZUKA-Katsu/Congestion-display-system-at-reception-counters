@@ -14,8 +14,8 @@
 <link rel="StyleSheet" href="http://www.city.yokohama.lg.jp/hodogaya/css/contents/print.css" type="text/css" media="print">
 
 <!-- ↓保険年金課窓口混雑状況CSS↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
-<link rel="StyleSheet" href="./css/mado.css" type="text/css">
-<link rel="StyleSheet" href="./css/suii.css" type="text/css">
+<link rel="StyleSheet" href="./css/mado-new.css" type="text/css">
+<link rel="StyleSheet" href="./css/suii-new.css" type="text/css">
 <style type="text/css">
     <!--
         th.biko { border-right : solid 1px #fff;}
@@ -131,27 +131,32 @@
 <!--TOPIC-->
 
 <table class="table_box">
+  <thead>
   <tr>
-    <th nowrap class="table_box_l madoNo">窓口番号</th>
+    <th scope="col" nowrap class="table_box_l madoNo">窓口番号</th>
     <!--DAY-->
   </tr>
+  </thead>
+  <tbody>
   <tr class="table_box_bg">
-    <td nowrap class="madoNo">７番</td>
+    <th scope="row" nowrap class="madoNo">７番</th>
       <!--7-SUII-->
   </tr>
   <tr class="table_box_bg">
-    <td nowrap class="madoNo">13番</td>
+    <th scope="row" nowrap class="madoNo">13番</th>
       <!--13-SUII-->
   </tr>
   <tr class="table_box_bg">
-    <td nowrap class="madoNo">８番</td>
+    <th scope="row" nowrap class="madoNo">８番</th>
       <!--8-SUII-->
   </tr>
   <tr class="table_box_bg">
-    <td nowrap class="madoNo">９番</td>
+    <th scope="row" nowrap class="madoNo">９番</th>
       <!--9-SUII-->
   </tr>
+  </tbody>
 </table>
+
 <div style="text-align:right;">
   <!--public-use--><a href="index.html">現在の受付番号と待ち人数にもどる</a>
   <!--local-use--><a href="../現在受付中番号のお客様の状況.html">モニター画面（現在受付中番号のお客様の状況）にもどる</a>
