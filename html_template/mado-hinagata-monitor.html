@@ -1,0 +1,77 @@
+    <html>
+      <head>
+        <style type="text/css">
+        <!--
+          div {text-align:center;}
+          div.uketukechu table td {font-size:130%;}
+          table {
+              margin-right:auto;
+              margin-left:auto;
+              border-top:1px solid #663300;
+              border-left:1px solid #663300;
+              border-collapse:collapse;
+              border-spacing:0;
+              background-color:#ffffff;
+              empty-cells:show;
+          }
+          th{
+              border-right:1px solid #663300;
+              border-bottom:1px solid #663300;
+              color:#330000;
+              background-color:lightgoldenrodyellow;
+              background-position:left top;
+              padding:0.3em 1em;
+              text-align:center;
+          }
+          td{
+              font-weight:bold;
+              text-align:center;
+              border-right:1px solid #663300;
+              border-bottom:1px solid #663300;
+              padding:0.3em 1em;
+          }
+          .alert{
+             font-size:150%;
+             color:red;
+          }
+        -->
+        </style>
+        <meta http-equiv="refresh" content="60">
+      </head>
+    <body>
+      <div style="text-align:right;"><a href="./suii/mado-jokyo-suii-hun.html">過去1週間の状況</a></div>
+      <div>
+        <h2><GENZAI></h2>
+        <h3>概　　況</h3>
+        <div class="uketukechu">
+          <table>
+          <tr>
+            <th rowspan="2">窓口</th>
+            <th colspan="3">現在受付中のお客様</th>
+            <th rowspan="2">現在の<br>待ち人数</th>
+            <th rowspan="2">次に呼ぶ<br>お客様の<br>待ち時間</th>
+            <th rowspan="2">直近の呼出しからの<br>経過時間</th>
+          </tr>
+          <tr>
+            <th>番号</th>
+            <th>発券時の<br>待ち人数</th>
+            <th>待ち時間</th>
+          </tr>
+            <UKETSUKECHU>
+          </table>
+        </div>
+        <br>
+        <h3>番号別待ち状況（待ち中）</h3>
+        <table>
+          <tr><th>窓口</th><th>番号</th><th>発券時待ち人数</th><th>発券時刻→呼出時刻</th><th>待ち時間</th></tr>
+          <MACHICHU>
+        </table>
+        <br>
+        <h3>番号別待ち状況（終了分）</h3>
+        <table>
+          <tr><th>窓口</th><th>番号</th><th>発券時待ち人数</th><th>発券時刻→呼出時刻</th><th>待ち時間</th></tr>
+          <SYURYO>
+        </table>
+      </div>
+   </body>
+   </html>

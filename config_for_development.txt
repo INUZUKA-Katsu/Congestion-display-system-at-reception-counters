@@ -1,0 +1,34 @@
+# -*- coding: Shift_JIS -*-
+ 
+#***********************************************************************#
+#          窓口混雑状況表示システム設定項目(開発時の代替設定）          #
+#                                                                       #
+#         $developement_mode=true and $test_mode=2,3,4,5 のとき         #
+#         config.txt の 設定を上書きする。(以下の記載は一つの例です)    #
+#                                                                       #
+#************************************************************************
+
+
+#***XXXX自宅用
+unless ENV['COMPUTERNAME']=~/YZ-/
+  $substitute_folder = "C:/Program Files/LightTPD/htdocs/hodogaya"
+  $log_backup_folder = "C:/Users/xxxx/窓口混雑状況システム/窓口混雑状況"
+  $excel_folder      = "C:/Users/xxxx/窓口混雑状況システム/窓口混雑状況"
+  $monitor_folder    = "C:/Users/xxxx/窓口混雑状況システム/窓口混雑状況"
+  $suii_folder       = "C:/Users/xxxx/窓口混雑状況システム/窓口混雑状況"
+  $vcall_exe                   = "ffftp.exe"
+  $vcall_path                  = '"C:/Program Files (x86)/ffftp/ffftp.exe"'
+  $moniter_system_window_title = 'FFFTP'
+  $vcall_hakkenki_address =  "192.168.0.1" #ダミーIPアドレス
+  $smtp_usable=false #メール送信環境がないときエラーを発生させない。メール内容をコンソールに表示
+end
+
+#***保険年金課長PC用
+if ENV['COMPUTERNAME']=="YZ-XX-99999999"
+  $vcall_exe                   = "ffftp.exe"
+  $vcall_path                  = '"C:/Program Files/ffftp/ffftp.exe"'
+  $moniter_system_window_title = 'FFFTP'
+  $vcall_hakkenki_address      = "999.999.99.99"   #横浜市CGIサーバ
+end
+
+

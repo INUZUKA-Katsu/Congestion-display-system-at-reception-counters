@@ -1,0 +1,202 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta content="text/javascript" http-equiv="Content-Script-Type">
+
+<!-- ↓保険年金課窓口混雑状況タイトル↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
+<title>横浜市保土ケ谷区国民年金・健康保険　窓口混雑状況 待ち人数の推移</title>
+<!-- ↑保険年金課窓口混雑状況タイトル↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ -->
+
+<link rel="StyleSheet" href="http://www.city.yokohama.lg.jp/coparts/css/base.css" type="text/css" media="screen,tv,projection,print">
+<link rel="StyleSheet" href="http://www.city.yokohama.lg.jp/hodogaya/css/contents/import.css" type="text/css" media="screen,tv,projection,print">
+<link rel="StyleSheet" href="http://www.city.yokohama.lg.jp/hodogaya/css/contents/print.css" type="text/css" media="print">
+
+<!-- ↓保険年金課窓口混雑状況CSS↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
+<link rel="StyleSheet" href="./css/mado.css" type="text/css">
+<link rel="StyleSheet" href="./css/suii.css" type="text/css">
+<style type="text/css">
+    <!--
+        th.biko { border-right : solid 1px #fff;}
+    -->
+</style>
+<script type="text/JavaScript" src="./kyugyobi.js"></script>
+
+<!-- ↑保険年金課窓口混雑状況CSS↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ -->
+
+</head>
+<body>
+
+<!-- ↓固定幅中央表示用 -->
+<div id="page-container">
+<!-- ここから横浜市共通ヘッダ (変更不可) -->
+<div id="common-header" class="m_none">
+<span id="common-header-jumpbody"><a href="#CONTENT"><img src="http://www.city.yokohama.lg.jp/coparts/img/null.gif" width="1" height="1" alt="本文へジャンプ"></a></span>
+<span id="common-header-logo"><a href="http://www.city.yokohama.lg.jp/"><img src="http://www.city.yokohama.lg.jp/coparts/header/hdr03-logo.ja.gif" width="224" height="30" alt="横浜市"></a></span><span class="common-header-splitter"> - </span>
+<span id="common-header-navi"><a href="http://www.city.yokohama.lg.jp/"><img src="http://www.city.yokohama.lg.jp/coparts/header/hdr03-top.ja.gif" width="100" height="30" alt="トップメニュー"></a><span class="common-header-splitter">|</span><a href="http://www.city.yokohama.lg.jp/search/"><img src="http://www.city.yokohama.lg.jp/coparts/header/hdr03-search.ja.gif" width="100" height="30" alt="検索"></a></span>
+</div>
+<!-- div id="common-header"の閉じタグ -->
+<!-- ↑横浜市共通ヘッダー(変更不可) -->
+<!-- ↓保土ケ谷区ヘッダー -->
+<div id="hodogaya-header">
+	<div class="right-area m_none">
+		<ul class="area2">
+			<li><a href="http://www.city.yokohama.jp/rakuraku/" style="white-space:nowrap;">文字拡大・読み上げ</a></li>
+			<li><a href="http://www.city.yokohama.lg.jp/hodogaya/english/">English Site</a></li>
+		</ul>
+		<ul class="area1">
+			<li><a href="http://www.city.yokohama.lg.jp/hodogaya/sitemap.html">サイトマップ</a></li>
+			<li><a href="http://qa.city.yokohama.lg.jp/">よくある質問</a></li>
+		</ul>
+		<div class="form-area" style="white-space:nowrap;">
+
+		  <form name="search" method="post" action="http://srh.city.yokohama.jp/cgi-bin/infobee/bin/result.cgi"> 
+			    <div>
+				<label for="br_keyword">サイト内検索:</label>
+				<input type="text" onblur="(t=this).value==''&&(t.value=t.def_value);" onfocus="(t=this).def_value||(t.def_value=t.value);t.def_value==t.value&&(t.value='');" accesskey="c" size="18" value="キーワード入力" id="br_keyword" name="br_keyword">
+				<input type="submit" value="検索" name="br_search">
+				<input type="hidden" value="localhost" name="br_host">
+				<input type="hidden" value="8520" name="br_port">
+				<input type="hidden" value="9" name="br_field_num">
+				<input type="hidden" value="" name="br_title">
+				<input type="hidden" value="0" name="br_goo">
+				<input type="hidden" value="1" name="br_04_digit_low">
+				<input type="hidden" value="保土ヶ谷区役所" name="br_09_keyword">
+				<input type="hidden" value="0" name="br_requirement">
+				<input type="hidden" value="10" name="br_output_num">
+				</div>
+		   </form>
+		</div>
+	</div>
+
+	<a href="http://www.city.yokohama.lg.jp/hodogaya/" name="top"><img src="http://www.city.yokohama.lg.jp/hodogaya/images/hodogaya-logo.gif" alt="保土ケ谷区ヘッダー" widht="250"></a>
+</div>
+<!-- ↑保土ケ谷区ヘッダー -->
+
+<!-- ↓保土ケ谷区グローバルナビゲーション -->
+<div id="hodogaya-g-navi">
+	<ul>
+		<li class="left"><a href="http://www.city.yokohama.lg.jp/hodogaya/access/">区役所のご案内</a></li>
+		<li><a href="http://www.city.yokohama.lg.jp/hodogaya/bunyabetu/">くらしと手続き</a></li>
+		<li><a href="http://www.city.yokohama.lg.jp/hodogaya/hodogaya-shirou.html">保土ケ谷を知ろう</a></li>
+		<li><a href="http://www.city.yokohama.lg.jp/hodogaya/hodogaya-torikumi.html">区の取組</a></li>
+		<li><a href="http://cgi.city.yokohama.lg.jp/common/event2/hodogaya/index.html">イベント情報</a></li>
+		<li class="right"><a href="http://www.city.yokohama.lg.jp/hodogaya/shisetu/">施設情報</a></li>
+	</ul>
+</div>
+<!-- ↑保土ケ谷区グローバルナビゲーション -->
+<p id="hodogaya-path">
+
+
+
+<a href="http://www.city.yokohama.lg.jp/hodogaya/">トップ</a>&nbsp;&gt;&nbsp;
+<!-- フォルダ非表示あり(最大5階層まで対応) -->
+<!-- 第1階層の情報取得 -->
+<!-- ↓保険年金課窓口混雑状況用ぱんくずリスト↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
+<a href="http://www.city.yokohama.lg.jp/hodogaya/bunyabetu/index.html">手続き・サービス（ジャンル別メニュー）</a> &gt; <a href="http://www.city.yokohama.lg.jp/hodogaya/bunyabetu/hokennenkin/index.html">国民年金・健康保険</a> &gt; <a href="http://cgi.city.yokohama.lg.jp/hodogaya/hokennenkin/">窓口混雑状況（現在の受付番号と待ち人数）</a> &gt; 今週の待ち人数の推移
+<!-- ↑保険年金課窓口混雑状況用ぱんくずリスト↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ -->
+
+
+</p>
+<!-- ↓保土ケ谷区MAIN::サイドメニュー＆コンテンツ ************************************************** -->
+<!-- ↓保土ケ谷区 TOPページ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
+<div id="CONTENT"></div>
+<div id="hodogaya-contents">
+
+	<!--div class="contents"-->
+
+		<div class="mainbox">
+
+<h1>保険年金課の窓口混雑状況<span class="m_fonts">（今週の待ち人数の推移）</span></h1>
+
+<div class="contents-block">
+
+<!-- ■■■↓ページタイトルを入力↓■■■ --><!-- ■■■ ここから1段組 ■■■ -->
+<h3></h3>
+
+<h4>グラフは各時刻の直前に来庁されたお客様の発券時の待ち人数を表わしています。</h4>
+<p>&nbsp;</p>
+<div style="text-align:right;">
+<!--local-use--><a href="mado-jokyo-suii-machisu(<!--PreviousWeek-->).html">前の週&lt;</a>
+<!--local-use-->&nbsp; 　　　　　　　　　　&nbsp;
+<!--local-use--><a href="mado-jokyo-suii-machisu(<!--NextWeek-->).html">&gt;次の週</a><br>
+<!--local-use--><a href="mado-jokyo-suii-hun(<!--ThisWeek-->).html">待ち時間の推移</a>&nbsp; /&nbsp; 
+<!--local-use--><a href="mado-jokyo-suii-syasu(<!--ThisWeek-->).html">来庁者数の推移</a><br>
+<!--local-use--><a href="../現在受付中番号のお客様の状況.html">モニター画面（現在受付中番号のお客様の状況）にもどる</a>
+<!--public-use--><a href="mado-jokyo-suii-hun.html">⇒待ち時間の推移</a><br>
+<!--public-use--><a href="index.html">現在の受付番号と待ち人数にもどる</a>
+</div>
+
+<!--TOPIC-->
+
+<table class="table_box">
+  <tr>
+    <th nowrap class="table_box_l madoNo">窓口番号</th>
+    <!--DAY-->
+  </tr>
+  <tr class="table_box_bg">
+    <td nowrap class="madoNo">７番</td>
+      <!--7-SUII-->
+  </tr>
+  <tr class="table_box_bg">
+    <td nowrap class="madoNo">13番</td>
+      <!--13-SUII-->
+  </tr>
+  <tr class="table_box_bg">
+    <td nowrap class="madoNo">８番</td>
+      <!--8-SUII-->
+  </tr>
+  <tr class="table_box_bg">
+    <td nowrap class="madoNo">９番</td>
+      <!--9-SUII-->
+  </tr>
+</table>
+<div style="text-align:right;">
+  <!--public-use--><a href="index.html">現在の受付番号と待ち人数にもどる</a>
+  <!--local-use--><a href="../現在受付中番号のお客様の状況.html">モニター画面（現在受付中番号のお客様の状況）にもどる</a>
+</div>
+<dl class="comment">
+<dt>※「今週」について…</dt>
+<dd>今日が月曜日（週の初日）のときは先週の情報を掲載しています。</dd>
+<dt>※待ち人数について…</dt>
+<dd>各時刻に一番近い時間に来庁されたお客様が番号札をとったときの待ち人数を掲載しています。</dd>
+<dt>※受付時間について…</dt>
+<dd>月曜日から金曜日までは<strong>午前８時４５分から午後５時まで</strong>、第２・第４土曜日は<strong>午前９時から正午まで</strong>です。</dd>
+</dl>
+
+<p>【お問合せ先】<br>
+保険年金課国民年金係　TEL：045-334-6332、FAX：045-334-6334<br>
+保険年金課保険係　　　　TEL：045-334-6335、FAX：045-334-6334<br>
+</p>
+
+</div><!-- end  [class=contents-block] -->
+
+<!--/div-->
+<!-- ↑end [div class=mainbox] -->
+
+</div><!--/div-->
+<!-- ↑保土ケ谷区コンテンツ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ -->
+</div>
+<hr>
+<!-- ↑保土ケ谷区MAIN::サイドメニュー＆コンテンツ ************************************************** -->
+<!-- ↓保土ケ谷区フッター -->
+<div id="hodogaya-footer">
+<address>
+
+横浜市 保土ケ谷区 保険年金課 国民年金係／保険年金課保険係
+ - 2014年07月22日作成 <!-->- 2014年07月22日更新<--> <span id="res"></span><br>
+
+ご意見・お問合せ - <a href="mailto:ho-hokennenkin@city.yokohama.jp">ho-hokennenkin@city.yokohama.jp</a> - 電話: 045-334-6332 - FAX: 045-334-6334<br>
+
+&copy;2011 - 2013 City of Yokohama. All rights reserved.<br>
+
+</address>
+
+</div>
+<!-- ↑保土ケ谷区フッター -->
+</div>
+<!-- ↑固定幅中央表示用 -->
+</body>
+</html>
+

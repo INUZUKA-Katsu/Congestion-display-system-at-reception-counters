@@ -1,0 +1,263 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!-- span.red{font-weight:bold;color:#ff0000;} --></style>
+<meta content="text/javascript" http-equiv="Content-Script-Type">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=0.5,maximum-scale=2.0">
+
+<!-- ↓保険年金課窓口混雑状況タイトル↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
+<title>横浜市　保土ケ谷区　ｽﾏｰﾄﾌｫﾝ版　国民年金・健康保険　窓口混雑状況</title>
+<!-- ↑保険年金課窓口混雑状況タイトル↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ -->
+
+
+<!-- ↓保険年金課窓口混雑状況CSS↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
+<meta http-equiv="refresh" content="60">
+<link rel="StyleSheet" href="./css/image.css" type="text/css" media="screen,tv,projection,print">
+<!-- 枠用CSS -->
+<link rel="StyleSheet" href="./css/mado-s.css" type="text/css" media="screen,tv,projection,print">
+<script type="text/JavaScript" src="./kyugyobi.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script>
+<script type="text/JavaScript">
+$(function(){
+	$(".accordion dt").click(function(){
+		$(this).next(".accordion dd").slideToggle();
+		$(this).next(".accordion dd").siblings(".accordion dd").slideUp();
+		$(this).toggleClass("open");   
+		$(this).siblings(".accordion dt").removeClass("open");
+	});
+ 
+});
+</script>
+<!-- ↑保険年金課窓口混雑状況CSS↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ -->
+
+</head>
+<body>
+<div id="mobile">
+
+<!-- ↓固定幅中央表示用 -->
+<!-- ↓保土ケ谷区ヘッダー -->
+<div id="hodogaya-header" style="background:none;">
+<div id="SP">
+<a href="./" class="pc">PC版</a>
+</div>
+	<a href="http://www.city.yokohama.lg.jp/hodogaya/" name="top"><img src="http://www.city.yokohama.lg.jp/hodogaya/images/hodogaya-logo.gif" alt="保土ケ谷区ヘッダー" width="200"></a>
+</div>
+<!-- ↑保土ケ谷区ヘッダー -->
+
+
+<!-- ↓保土ケ谷区MAIN::サイドメニュー＆コンテンツ ************************************************** -->
+<!-- ↓保土ケ谷区 TOPページ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ -->
+<div id="hodogaya-contents">
+
+<div class="contents">
+
+<div class="mainbox">
+
+<h1>保険年金課の窓口混雑状況<br>
+<span class="m_fonts">（現在の受付番号とお待ちの方の人数）</span></h1>
+
+<div class="contents-block">
+
+<!-- ■■■↓ページタイトルを入力↓■■■ --><!-- ■■■ ここから1段組 ■■■ -->
+<h3>トピック</h3>
+<h4>１３番（保険係・収納担当）～１３番窓口ができました。～</h4>
+<p>7月22日（火）から13番窓口ができました。これまで7番窓口で取り扱っていた業務のうち、国民健康保険と介護保険の<strong>保険料の納付、納付相談</strong>を専門に取り扱います。保険料の納付に関するご相談は13番窓口にお越しください。<br>なお、後期高齢者医療制度の保険料については、これまでどおり、8番窓口でお取扱いします。</p>
+
+<h4>７番（保険係・資格賦課担当）</h4>
+<p>月初め及び休み明けの月曜日は、社会保険からの切り替えなどで窓口が混雑する場合があります。<br>申し訳ございませんが、ご理解、ご協力をお願いします。</p>
+
+
+<h4>８番（保険係・給付担当）</h4>
+<p>毎月下旬は、高額療養費の申請手続きのため多数の方が８番窓口に来庁され、長時間お待ちいただく場合があります。ご理解ご協力をお願いいたします。</p>
+
+<!--TOPIC-->
+
+<p class="time"><!--TIME--></p>
+
+<table width="100%" border="0" align="center" cellpadding="0" cellspacing="0" class="table_box">
+  <tr>
+    <th width="33%" nowrap class="table_box_l madoNo">窓口番号</th>
+    <th width="33%" nowrap class="table_box_l uketukeNo">ただ今の受付番号</th>
+    <th width="33%" nowrap class="table_box_l machi">待ち人数</th>
+  </tr>
+
+  <tr class="table_box_bg">
+    <td class="madoNo">７番</td>
+    <td class="uketukeNo"><!--7-BANGO--></td>
+    <td class="machi"><!--7-NINZU--></td>
+  </tr>
+  <tr class="table_box_bg">
+    <td colspan="3" class="s_gyoumu">
+      <dl class="accordion">
+        <dt class="gyoumu">国民健康保険・介護保険の加入・脱退、保険料の決定など</dt>
+        <dd>
+          <ul>
+          <li><strong>国民健康保険・介護保険</strong>
+              <br>加入・資格喪失、住所変更などの届出
+              <br>被保険者証の再発行
+              <br>保険料の決定に関すること
+              <br>葬祭費
+          </li>
+          </ul>
+        </dd>
+        <dt class="konzatu">混み具合</dt>
+        <dd>
+          <div class="message"><!--7-MESSAGE--></div>
+          <div class="sanko"><!--7-SANKO-Title--></div>
+          <dl class="biko">
+            <!--7-SANKO-->
+          </dl>
+        </dd>
+      </dl>
+    </td>
+  </tr>
+
+  <tr class="table_box_bg">
+    <td class="madoNo">１３番</td>
+    <td class="uketukeNo"><!--13-BANGO--></td>
+    <td class="machi"><!--13-NINZU--></td>
+  </tr>
+  <tr class="table_box_bg">
+    <td colspan="3" class="s_gyoumu">
+      <dl class="accordion">
+        <dt class="gyoumu">保険料の納付、納付相談</dt>
+        <dd>
+          <ul>
+          <li><strong>国民健康保険・介護保険</strong>
+              <br>保険料の納付
+              <br>保険料の納付相談
+              <br>⇒保険料の額に関するご質問は、７番窓口へ
+              <br>⇒後期高齢者医療の保険料については、8番窓口へ
+              <br>⇒国民年金の保険料については、９番窓口へ
+          </li>
+          </ul>
+        </dd>
+        <dt class="konzatu">混み具合</dt>
+        <dd>
+          <div class="message"><!--13-MESSAGE--></div>
+          <div class="sanko"><!--13-SANKO-Title--></div>
+          <dl class="biko">
+            <!--13-SANKO-->
+          </dl>
+        </dd>
+      </dl>
+    </td>
+  </tr>
+
+  <tr class="table_box_bg">
+    <td class="madoNo">８番</td>
+    <td class="uketukeNo"><!--8-BANGO--></td>
+    <td class="machi"><!--8-NINZU--></td>
+  </tr>
+  <tr class="table_box_bg">
+    <td colspan="3" class="s_gyoumu">
+      <dl class="accordion">
+        <dt class="gyoumu">後期高齢者医療、医療費の払い戻しなど</dt>
+        <dd>
+          <ul>
+          <li><strong>後期高齢者医療</strong>
+            <br>加入・資格喪失の届出、被保険者証、保険料、高額療養費、葬祭費、その他
+          </li>
+          <li><strong>国民健康保険・介護保険</strong>
+            <br>高額療養費など医療費の払い戻し
+            <br>負担限度額認定証
+            <br>出産育児一時金
+            <br>介護保険の住宅改修、福祉用具の購入
+          </li>
+          <li><strong>小児・重度障害者・ひとり親家庭等の医療費助成</strong>
+            <br>医療証の申請
+            <br>医療費の払い戻し
+          </li>
+          </ul>
+        </dd>
+        <dt class="konzatu">混み具合</dt>
+        <dd>
+          <div class="message"><!--8-MESSAGE--></div>
+          <div class="sanko"><!--8-SANKO-Title--></div>
+          <dl class="biko">
+            <!--8-SANKO-->
+          </dl>
+        </dd>
+      </dl>
+    </td>
+  </tr>
+  
+  <tr class="table_box_bg">
+    <td class="madoNo">９番</td>
+    <td class="uketukeNo"><!--9-BANGO--></td>
+    <td class="machi"><!--9-NINZU--></td>
+  </tr>
+  <tr class="table_box_bg">
+    <td colspan="3" class="s_gyoumu">
+      <dl class="accordion">
+        <dt class="gyoumu">国民年金</dt>
+        <dd>
+          <ul>
+          <li><strong>国民年金</strong>
+            <br>加入手続
+            <br>保険料の免除の申請
+            <br>学生納付特例の申請
+            <br>障害基礎年金・遺族基礎年金の裁定請求（受給のための手続）
+          </li>
+          </ul>
+        </dd>
+        <dt class="konzatu">混み具合</dt>
+        <dd>
+          <div class="message"><!--9-MESSAGE--></div>
+          <div class="sanko"><!--9-SANKO-Title--></div>
+          <dl class="biko">
+            <!--9-SANKO-->
+          </dl>
+        </dd>
+      </dl>
+    </td>
+  </tr>
+  </table>
+<dl class="comment">
+<dt>※お待ちの番号が過ぎてしまったときは、フロア案内の職員等にお声をおかけください。</dt>
+<dt>※待ち時間について…</dt>
+<dd><a href="./">PC版</a>の画面では待ち時間の目安も表示していますので併せてご利用ください。</dd>
+<dt>※受付番号について…</dt>
+<dd>７番窓口は 1～300、８番窓口は 301～600、９番窓口は 601～800、13番窓口は 801～900 の番号を順番に発券し受け付けています。上限まで番号を使い切ると最初の番号に戻ります。</dd>
+<dt>※受付時間について…</dt>
+<dd>月曜日から金曜日までは<strong>午前８時４５分から午後５時まで</strong>、第２・第４土曜日は<strong>午前９時から正午まで</strong>です。</dd>
+</dl>
+
+<p>【お問合せ先】<br>
+保険年金課国民年金係　TEL：045-334-6332、FAX：045-334-6334<br>
+保険年金課保険係　　　　TEL：045-334-6335、FAX：045-334-6334<br>
+</p>
+
+</div><!-- end  [class=contents-block] -->
+
+</div>
+<!-- ↑end [div class=mainbox] -->
+
+</div><!--/div-->
+<!-- ↑保土ケ谷区コンテンツ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ -->
+<!-- ↓保土ケ谷区サイドメニュー↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ --><!-- ↑保土ケ谷区サイドメニュー↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ -->
+</div>
+<hr>
+<!-- ↑保土ケ谷区MAIN::サイドメニュー＆コンテンツ ************************************************** -->
+<!-- ↓保土ケ谷区フッター -->
+<div id="hodogaya-footer">
+<address>
+
+横浜市 保土ケ谷区 保険年金課 国民年金係／保険年金課保険係
+ - 2013年06月14日作成 - 2014年07月22日更新 <span id="res"></span><br>
+
+ご意見・お問合せ - <a href="mailto:ho-hokennenkin@city.yokohama.jp">ho-hokennenkin@city.yokohama.jp</a> - 電話: 045-334-6332 - FAX: 045-334-6334<br>
+
+&copy;2011 - 2013 City of Yokohama. All rights reserved.<br>
+
+</address>
+
+</div>
+<!-- ↑保土ケ谷区フッター --><!-- ↑固定幅中央表示用 -->
+</div>
+</body>
+</html>
+
