@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.4.4 (2017.8.6)           #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.352 (2017.9.10)            #
 #                                                                                #
 #                       過去ログの分析編                                         #
 #                                                                                #
@@ -39,56 +39,14 @@ class Kakolog
   def kaichojikan(day)
     @kaichojikan[day]
   end
-  #指定日付の過去ログファイル(存否を問わない)
-  def self.kako_log_of(day)
-    "#{Myfile.dir(:kako_log)}/#{day}.log"
-  end
   #指定した複数日付の過去ログファイルに欠落があるか。
   #戻り値： 欠落あり=>true、欠落なし=>false (祝日は考慮しない)
-  def self.lack_of_kako_log(*days)
-    days.flatten.each do |day|
-      next if day>Today or File.exist? kako_log_of(day)
+  def self.lack_of_kako_log
+    @days.each do |day|
+      next if day>Today or day.log_file
       return true
     end
     false
-  end
-  #過去ログファイルに含まれる{日付=>ログデータ}
-  def self.lines_of(file)
-    if File.exist? file
-      h    = Hash.new
-      ary  = File.readlines(file)
-      days = ary.map{|line| $& if line=~/^\d{8}/}.uniq
-      days.each do |day|
-        h[day]=ary.select{|line| line[0,8]==day}.map{|line| line.chomp}
-      end
-      h
-    else
-      false
-    end
-  end
-  def self.save_kako_log(date,lines)
-    file=kako_log_of(date)
-    lines.concat File.readlines(file) if File.exist? file
-    ary=lines.select{|line| line=~/\d{8}/ and $&==date}.map{|line| line.chomp}.uniq
-    File.open(file,"w") do |f|
-      ary.each{|l| f.puts l}
-    end
-  end
-  #他の日付のファイルに他の日付のログが含まれていないかを調べ
-  #当該日付名のログファイルを作成する。
-  def self.repair(*days)
-    days.flatten.each do |day|
-      file=kako_log_of(day)
-      if File.exist? file
-        h = lines_of(file)
-        if h.keys.select{|date| date != day}.size>0
-          h.each do |date,lines|
-            save_kako_log(date,lines)
-            p "A log file of date:#{date} was saved(repaired)."
-          end
-        end
-      end
-    end
   end
 end
 
@@ -146,9 +104,9 @@ def html_th(days)
   th=[]
   days.each do |day|
     if day==days[-1]
-      s = '<th scope="col" class="date table_box_r">'+day.day_to_jan+'</th>'
+      s = "<th scope=\"col\" class=\"date table_box_r\" id=\"day#{day.day_to_nichiyo}\">#{day.day_to_jan}</th>"
     else
-      s = '<th scope="col" class="date">'+day.day_to_jan+'</th>'
+      s = "<th scope=\"col\" class=\"date\" id=\"day#{day.day_to_nichiyo}\">#{day.day_to_jan}</th>"
     end
     th << s
   end
@@ -187,7 +145,7 @@ def html_suii(kubun,kakolog,mado)
   kakolog.days.each do |day|
     log   =kakolog.logs(day,mado)
     kaihei=status(day,log,mado)
-    suii << "<td class=\"graph\" headers=\"#{mado}番窓 #{day.day_to_nichiyo}\">"
+    suii << "<td class=\"graph\" headers=\"mado#{mado} day#{day.day_to_nichiyo}\">"
     suii << "#{str(day,log,kaihei,kubun)}</td>\n"
   end
   suii
@@ -403,20 +361,14 @@ def rebuild_suii_for_monitor(sday,eday=Today)
   files
 end
 
-#マニュアル操作による課内モニター用週別ファイルの一括作成
+#マニュアル操作による一括処理
 #suii.rbに”all”又は開始日(yyyymmdd形式)を引数として付加して起動した場合に作動する。
-#使用例  >cd c:\窓口混雑状況HPシステム
-#       >./ruby-dist/ruby suii.rb 20160401
-if ARGV[0]
-  start_day=""
-  if ARGV[0]=="all"
-    start_day=Dir.glob(Myfile.dir(:kako_log)+"/*.log").select{|l| l=~/\d{8}\.log/}.map{|l| l.match(/\d{8}/)[0]}.min
-  elsif ARGV[0]=~/^\d{8}/
-    start_day=$&
-  elsif ARGV[0] != "EndingProcess"
-    popup "パラメータが間違っています。"
-  end
-  unless start_day == ""
+#第2引数: "repair_log", "make_suii", "make_exel"のいずれか又は組合せ（"repair_log,make_suii,make_excel"など）
+#第2引数に"repair_log"が含まれるとき、ログの修復を行う。
+#第2引数に"make_suii" が含まれるとき、モニター画面用の週の推移を作成する。
+#第2引数に"make_exel" が含まれるとき、各日のエクセルファイルを作成する。
+if ARGV[0] and ( ARGV[0]=="all" or ARGV[0].match(/^\d{8}$/) )
+  def make_suii_html(start_day)
     #週別推移のファイルをtempフォルダに作成し、共有フォルダに複写する。
     files=make_suii_during_optional_period(start_day)
     FileUtils.cp(files.flatten,Myfile.dir(:suii))
@@ -425,6 +377,32 @@ if ARGV[0]
     to=Myfile.dir(:suii)+"/index.html"
     FileUtils.cp(index,to)
     popup Myfile.dir(:suii) + " に保存しました。"
+  end
+  if ARGV[0] == "all"
+    days      = Dir.glob(Myfile.dir(:kako_log)+"/*.log").select{|l| l=~/\d{8}\.log/}.map{|l| l.match(/\d{8}/)[0]}
+    start_day = days.min
+  else
+    start_day = ARGV[0]
+    days      = (start_day..Today).to_a
+  end
+  if ARGV[1] and ARGV[1].match(/repair_log/)
+    LogBack.repair(days)
+  end
+  if ARGV[1]==nil or ARGV[1].match(/make_suii/)
+    make_suii_html(start_day)
+  end
+  if ARGV[1] and ARGV[1].match(/make_excel/) and Myfile.dir(:excel)
+    TimeNow = "23:00"
+    xl=start_excel()
+    days.each do |day|
+      xlsx    = Myfile.dir(:excel)+"/"+day+".xlsx"
+      csv     = Myfile.dir(:excel)+"/"+day+".csv"
+      if day.log_file and not File.exist?(xlsx) and not File.exist?(csv)
+        logs=RaichoList.setup(day.log_file,$mado_array,day)
+        make_xlsx(xl,logs,day)
+      end
+    end
+    stop_excel(xl)
   end
 end
 

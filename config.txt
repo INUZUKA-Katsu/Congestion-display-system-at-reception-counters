@@ -1,7 +1,7 @@
 # -*- coding: Windows-31J -*-
  
 #***********************************************************************#
-#             窓口混雑状況表示システム設定項目 (Ver.3.4用)              #
+#             窓口混雑状況表示システム設定項目 (Ver.350用)              #
 #                                                                       #
 #  "#"で始まる行はコメントとして扱われます。設定項目の先頭に"#"がある   #
 #  ときは、"#"を削除することで、設定が有効になります。                  #
@@ -257,7 +257,8 @@ $html_file[:suii_machisu]="mado-jokyo-suii-machisu.html"
 $html_file[:monitor]="現在受付中番号のお客様の状況.html"
 
 #FTPサーバーの保存ディレクトリ
-$ftp_dir="/renew-test"
+#(H29.7連携サーバへはディレクトリを指定せずにアップしなければならないのでコメントアウトする。)
+#$ftp_dir="/"
 
 #マイドキュメントに保存する概況ファイル（日々の概況データを累積保存するファイル）
 $gaikyo="窓口概況.csv"
@@ -303,5 +304,6 @@ $bar_height=Hash.new
 $bar_height[:today]="0.9em"
 $bar_height[:weekly]="0.9em"
 
-#**** 課内モニター用の置換 ****
-$src_replace={ "http://www.city.yokohama.lg.jp/" => "./" }
+#**** 課内モニター用の置換指定 ****
+$src_replace=Hash.new
+$src_replace["http://www.city.yokohama.lg.jp/"]="./"

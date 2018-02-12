@@ -4,7 +4,7 @@
 #                                                                                #
 #              モニター用ＰＣログイン監視編                                      #
 #                64bit版Windowsと32bit版rubyの組合せでは                         #
-#                ログインの判定ができないことが分かっています。                  #
+#                Ver.3.42以降のRaicholist.rbを使う必要があります。               #
 #                                                                                #
 #                        作成    犬塚  克 ( ka00-inuzuka@city.yokohama.jp )      #
 #                        著作権  横浜市                                          #

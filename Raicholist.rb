@@ -1,11 +1,11 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.43 (2017.6.24)                  #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.352 (2017.11.5)            #
 #                                                                                #
-#        <<オブジェクト定義、ユーティリティメソッド及びオプション機能>>                    #
+#        <<オブジェクト定義、ユーティリティメソッド及びオプション機能>>          #
 #                                                                                #
-#                        作成    犬塚  克 ( ka00-inuzuka@city.yokohama.jp )        #
-#                        著作権  横浜市                                            #
+#                        作成    犬塚  克 ( ka00-inuzuka@city.yokohama.jp )      #
+#                        著作権  横浜市                                          #
 #--------------------------------------------------------------------------------#
 
 Encoding.default_external="Windows-31J"
@@ -21,7 +21,6 @@ require 'net/smtp'
 require 'date'
 require 'csv'
 require './holiday_japan'
-
 
 #*** マイドキュメントフォルダ ***
 wsh = WIN32OLE.new('WScript.Shell')
@@ -69,6 +68,29 @@ end
 
 
 class ConfigSet
+  #*** 環境設定値（config.txt）の一覧作成 2017.11.5 ***
+  def make_table_of_setted_value()
+    conf = File.read("./config.txt")
+    hensu=conf.scan(/^#?\$[a-z_0-9\-]+/).map{|h| h.sub("#","")}.uniq.sort
+    su=hensu.map{|h| h.size}.max
+    File.open("./設定値一覧.txt","w") do |f|
+      hensu.each do |h|
+          f.print h + " "*(su-h.size) + " => "
+          if eval(h)
+            f.print eval(h)
+          else
+            f.print "(未定義)"
+          end
+          f.print "\n"
+      end
+    end
+    s=File.read("./設定値一覧.txt")
+    File.open("./設定値一覧.txt","w") do |f|
+      mtime=File.stat("./config.txt").mtime.strftime("%Y/%m/%d %H:%M:%S")
+      f.print "config.txt（#{mtime}更新）の設定値一覧\n\n"
+      f.print s.gsub(/[^{]:[a-z]/,"\n"+'\0').gsub(/^[^\$]/," "*(su+4)+'\0')
+    end
+  end
   #*** ディレクトリチェック（なければ作成する） ***
   def self.setup_dir()
     return @@dir if defined? @@dir
@@ -286,6 +308,7 @@ end
 def send_mail(title,body)
   if test_mode?
     if test_mode?(6) or $smtp_usable==nil or ($smtp_usable and $smtp_usable==true)
+      return :no_address if not defined?($to_on_trial) or $to_on_trial.size==0
       to=$to_on_trial #テスト用アドレスに送信
     else
       #テストモード6以外のとき、又はメール送信環境がないことを$smtp_usable=falseで明示したときはコンソールに表示
@@ -295,6 +318,7 @@ def send_mail(title,body)
       return :send
     end
   else
+    return :no_address if not defined?($to) or $to.size==0
     to=$to
   end
   to=[to] if to.class==String
@@ -437,6 +461,7 @@ def bar_chart_imgtag(bar_type,su)
   "<img src=\"#{image(su)}\" alt=\"\" style=\"#{size}\">"
 end
 
+
 class String
   #*** 文字列中の半角数字を全角数字に変換 ***
   def num_to_zenkaku
@@ -455,13 +480,13 @@ class String
     y=date.yobi
     "#{m}月#{d}日(#{y})"
   end
-  #*** "yyyymmdd"から"d日Y曜"に変換 ***
+  #*** "yyyymmdd"から"mmddyobi"(yobi=nichiyo,getsuyo,kayo・・・)に変換 ***
   def day_to_nichiyo
     return self unless self.match(/\d{8}/)
-    date=Time.parse(self)
-    d=date.day.to_s
-    y=date.yobi
-    "#{d}日#{y}曜"
+    d=self[4,4]
+    yobi=["nichiyo","getsuyo","kayo","suiyo","mokuyo","kin\'yo","doyo"]
+    y=yobi[Date.parse(self).wday]
+    d+y
   end
   #*** "hh:mm"から"午前/午後 h 時 mm 分"に変換 ***
   def time_to_jan
@@ -2264,40 +2289,81 @@ end
 
 
 #***** logデータの保存と初期化 *****
-def log_data_backup(option=:and_erase)
-  new=[]
-  file=File.read(Myfile.file(:log))
-  file.each_line do |line|
-    if line and line[0,8] <= Today
-      new << line.chomp
+class LogBack
+  #引数:file、 戻り値: {日付=>ログの配列}
+  def self.lines_of(file)
+    if File.exist? file
+      h    = Hash.new
+      ary  = File.readlines(file)
+      days = ary.map{|line| $& if line=~/^\d{8}/}.uniq
+      days.each do |day|
+        h[day]=ary.select{|line| line[0,8]==day}.map{|line| line.chomp}
+      end
+      h
+    else
+      false
     end
   end
-  if new.size>0
-    log_file=Myfile.dir(:kako_log)+"/"+Today+".log"
-    #過去ログがすでにあるときは空ファイルで上書きしてしまいデータが消滅する危険がある。
-    #そこで既存のデータにnewデータを追加したうえで重複を削除する。H26.6.25
-    if File.exist? log_file
-      file=File.read(log_file)
-      file.each_line do |line|
-        new << line.chomp if line
+  def self.save_kako_log(day,lines)
+    file = Myfile.dir(:kako_log)+"/"+day+".log"
+    lines.concat File.readlines(file) if File.exist?(file)
+    ary=lines.select{|line| line=~/\d{8}/ and $&==day}.map{|line| line.chomp}.uniq.sort
+    File.write(file, ary.join("\n")+"\n")
+  end
+  def self.another_day_exist?(day)
+    File.open(day.log_file,"r") do |f|
+      f.each_line do |line|
+        if line[0,8]!=day and line[0,8].match(/\d{8}/)
+          return true
+        end
       end
-      new.uniq!.sort! #重複行を削除
     end
-    new_str=new.join("\n")
-    File.write(log_file,new_str)
-    if Myfile.dir(:log_backup)
-      FileUtils.cp_r(log_file, Myfile.dir(:log_backup), {:preserve => true})
+    false
+  end
+  def self.log_data_backup(option=:and_erase)
+    new=File.read(Myfile.file(:log))
+    todays_file = Myfile.dir(:kako_log)+"/"+Today+".log"
+    File.open(todays_file,"a") do |f|
+      f.puts new
     end
-    if option==:and_erase and test_mode? == false and File.exist? log_file
+    if option==:and_erase and test_mode? == false and File.exist?(newest)
       File.write(Myfile.file(:log) , "")
     end
+  end
+  #他の日付のファイルに他の日付のログが含まれていないかを調べ
+  #当該日付名のログファイルを作成する。エクセルファイルも補填する。
+  def self.repair(days)
+    case days
+    when Array
+      @days=days
+    when String
+      @days=[days]
+    when Range
+      @days=days.to_a
+    end
+    repaired_days=[]
+    days.each do |day|
+      if day.log_file and another_day_exist?(day)
+        h = lines_of(day.log_file)
+        h.each do |d,lines|
+          save_kako_log(d,lines)
+          if day != d
+            repaired_days << d
+            p "A log file of date:#{d} was saved(repaired)."
+          end
+        end
+      end
+    end
+    repaired_days
   end
 end
 
 
 #****エクセルのファイルの作成******
-def make_xlsx(logs)
-  str    = "#{Today.day_to_jan}の窓口状況\n\n"
+module Excel;end
+def make_xlsx(xl,logs,day=Today)
+  #CSVファイルを作成・保存
+  str    = "#{day[0,4]}年#{day.day_to_jan}の窓口状況\n\n"
   $mado_array.each do |mado|
     str << "#{mado}番窓口: 来庁者数 #{logs[mado].sya_su.to_s}、 平均待ち時間 #{logs[mado].average_machi_hun.to_s} 分\n"
   end
@@ -2305,45 +2371,63 @@ def make_xlsx(logs)
   str   << "窓口,番号,発券時待ち人数,発券時刻→呼出時刻,待ち時間\n"
   str   << make_csv_data(logs)
   temp   = Myfile.dir(:temp)+"/temp.csv"
+  #CSVファイルをエクセルで読込んで整形する。
   begin
     File.write(temp,str)
-    xl = WIN32OLE.new('Excel.Application')
-    book = xl.Workbooks.Open(temp)
-#xl.visible=true
-    book.ActiveSheet.Columns("A").ColumnWidth = 8.38
-    book.ActiveSheet.Columns("B").ColumnWidth = 8.38
-    book.ActiveSheet.Columns("C").ColumnWidth = 14.25
-    book.ActiveSheet.Columns("D").ColumnWidth = 18.63
-    book.ActiveSheet.Columns("E").ColumnWidth = 8.38
-
-    book.ActiveSheet.Range("B8").CurrentRegion.HorizontalAlignment = -4108
-
-    (7..12).each do |i|
-      book.ActiveSheet.Range("B8").CurrentRegion.Borders(i).LineStyle = 1
-      book.ActiveSheet.Range("B8").CurrentRegion.Borders(i).ColorIndex = 0
-      book.ActiveSheet.Range("B8").CurrentRegion.Borders(i).TintAndShade = 0
-      book.ActiveSheet.Range("B8").CurrentRegion.Borders(i).Weight = 2
+    book     = xl.Workbooks.Open(temp)
+    
+    my_table = book.ActiveSheet.Range("B8").CurrentRegion
+    #列幅
+    [10,10,16,20,10].each_with_index do |width,i|
+      book.ActiveSheet.Columns(i+1).ColumnWidth = width
     end
-
+    #文字センター揃え
+    my_table.HorizontalAlignment = Excel::XlCenter
+    #罫線
+    direction=[]
+    direction << Excel::XlEdgeTop
+    direction << Excel::XlEdgeBottom
+    direction << Excel::XlEdgeLeft
+    direction << Excel::XlEdgeRight
+    direction << Excel::XlInsideVertical
+    direction << Excel::XlInsideHorizontal
+    direction.each do |d|
+      my_table.Borders(d).LineStyle = Excel::XlContinuous
+      my_table.Borders(d).ColorIndex = 0
+      my_table.Borders(d).TintAndShade = 0
+      my_table.Borders(d).Weight = Excel::XlThin
+    end
+    #印刷時のタイトル行
     book.ActiveSheet.PageSetup.PrintTitleRows = "$1:$1"
 
-    xl.Application.DisplayAlerts = "False"
-    book_name="#{MYDOC}/窓口待ち状況(#{Time.parse(Today).strftime('%Y-%m-%d')}).xlsx"
+    #エクセルファイルとして保存する。
+    book_name="#{MYDOC}/窓口待ち状況(#{Time.parse(day).strftime('%Y-%m-%d')}).xlsx".gsub('/','\\')
     book.SaveAs("Filename"=>book_name,"FileFormat"=>51, "CreateBackup"=>"False")
     book.Close("False")
-    xl.Application.DisplayAlerts = "True"
-    xl.Quit
+    #共有フォルダにコピーする。
     if Myfile.dir(:excel)
       FileUtils.cp_r(book_name,Myfile.dir(:excel),{:preserve => true})
+      p "A Excel file of date:#{day} was saved."
     end
+    return
   rescue =>e
-#popup e.message.force_encoding("Windows-31J") + "\n\n#{temp}"
+    #popup e.message.force_encoding("Windows-31J") + "\n\n#{temp}"
     #原因不明であるが、環境によってはOLEオートメーションのアクセスを拒否される場合がある。
     #その場合の代替処理として、同じ内容のcsvファイルを保存する。
-    csv_name="#{Myfile.dir(:excel)}/窓口待ち状況(#{Time.parse(Today).strftime('%Y-%m-%d')}).csv"
+    csv_name="#{Myfile.dir(:excel)}/窓口待ち状況(#{Time.parse(day).strftime('%Y-%m-%d')}).csv"
     if Myfile.dir(:excel)
       FileUtils.cp_r(temp,csv_name)
+      p "A CSV file of date:#{day} was saved."
     end
   end
 end
-
+def start_excel()
+  xl = WIN32OLE.new('Excel.Application')
+  xl.Application.DisplayAlerts = "False"
+  WIN32OLE.const_load(xl, Excel) unless defined? Excel::XlAll
+  xl
+end
+def stop_excel(xl)
+  xl.Application.DisplayAlerts = "True"
+  xl.Quit
+end

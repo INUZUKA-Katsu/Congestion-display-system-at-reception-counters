@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.44 (2017.8.4)           #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.352 (2017.9.5)             #
 #                                                                                #
 #          HTLM生成、FTP送信編                                                   #
 #                                                                                #
@@ -21,11 +21,12 @@ require "./ObjectInitialize.rb" unless String.const_defined? :Today
 #***** 状況判定 *****
 def situation
   return :before_open if $ku.kaicho > TimeNow
-  return :ending if manually_operated_ending_process()
   $syuryo_hun||=5
   if $ku.heicho < TimeNow
     if File.exist?("#{MYDOC}/#{$logfolder}/#{Today}.log") and test_mode? == false
       return :ended
+    elsif manually_operated_ending_process()
+      return :ending
     elsif ( $ku.heicho + $syuryo_hun.minute < TimeNow and
             RaichoList.machi_su==0 and
             RaichoList.last_update_time + 10.minute < TimeNow ) or
@@ -252,14 +253,16 @@ def 業務終了処理
   #ホームページ、課内モニタを更新する
   通常処理
 
-  #logデータ保存・初期化
-  log_data_backup if $test_mode!=7
+  #logデータを過去ログフォルダに移す。
+  LogBack.log_data_backup if $test_mode!=7
+
+  #logデータの修復.前日等他の日のデータが混在するときそれぞれの日付ファイルに振り分ける。
+  #（念のため今日だけでなく7日前からのログを点検する.）
+  repaired_days=LogBack.repair(Today-7..Today)
 
   #***** 推移のhtml *****
   require './suii'
-  #過去ログファイルに欠落があるとき修復する。
-  days_of_this_week=Today.days_of_week
-  Kakolog.repair(days_of_this_week) if Kakolog.lack_of_kako_log(days_of_this_week)
+
   #内部モニタ用ページ(内部モニタ用⇒公開用の順序を崩さないこと)
   make_suii_for_monitor if Myfile.dir(:suii)
   #公開用ページ
@@ -272,17 +275,29 @@ def 業務終了処理
   gaikyo_data_save($logs)
 
   #エクセルで今日の待ち時間一覧表を作成
-  make_xlsx($logs) if Myfile.dir(:excel)
-
-  #保険年金課の更新日時変更があるか調べ、変更あるとき共通デザインを取り込む
-  #load  './mado_design_renew.rb'
+  xl=start_excel()
+  make_xlsx(xl,$logs) if Myfile.dir(:excel)
+  stop_excel(xl)
+  #ログを修復したとき欠落したエクセルファイルを補う。
+  if Myfile.dir(:excel) and repaired_days.size>0
+    xl=start_excel()
+    repaired_days.each do |day|
+      file= Myfile.dir(:excel)+"/窓口待ち状況(#{Time.parse(day).strftime('%Y-%m-%d')})"
+      if not File.exist?(file+".xlsx") and not File.exist?(file+".csv")
+        logs=RaichoList.setup(day.log_file,$mado_array,day)
+        make_xlsx(xl,logs,day)
+      end
+    end
+    stop_excel(xl)
+  end
 
   puts "業務終了処理完了！"
 
   #システムシャットダウン
   if manually_operated_ending_process()
     mess="業務終了処理が完了しました。シャットダウンします。"
-    VcallMonitor.new.shutdown_pc(mess,0) if $test_mode!=7  else
+    VcallMonitor.new.shutdown_pc(mess,0) if $test_mode!=7
+  else
     mess="業務終了処理が完了しました。５分後にシャットダウンします。"
     VcallMonitor.new.shutdown_pc(mess,5.minute) if $test_mode!=7
   end
@@ -306,7 +321,17 @@ case situation
   when :regular               ; 通常処理
   when :before_open           ; 開庁前処理
   when :ending                ; 業務終了処理
-  when :ended                 ; puts "業務終了処理済み！"
+  when :ended
+    puts "業務終了処理済み！"
+    #*** 業務終了処理済みですでにログファイルが空であるのにマニュアル操作で業務終了処理が指示されたときは
+    #*** 操作の意図を優先し、ログファイルを書き戻してもう一度業務終了処理を行う.
+    if manually_operated_ending_process()
+      log_file=Myfile.dir(:kako_log)+"/"+Today+".log"
+      if File.exist? log_file
+        FileUtils.cp(log_file, Myfile.file(:log), {:preserve => true})
+        業務終了処理
+      end
+    end
 end
 
 
