@@ -1,6 +1,6 @@
 # -*- coding: Shift_JIS -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.2.9 (2014.9.18)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.2 (2015.1.21 )           #
 #                                                                                #
 #                       過去ログの分析編                                         #
 #                                                                                #
@@ -65,6 +65,13 @@ class String
       raise
     end
   end
+  def kaichojikan
+    if self.match(/\d{8}/)
+      KaichoJikan.setup(self)
+    else
+      raise
+    end
+  end
 end
 
 class Kakolog
@@ -86,11 +93,9 @@ class Kakolog
     end
   end
   def log(day,mado=nil)
-    if mado==nil
-      @log[day]
-    else
-      @log[day][mado]
-    end
+    return nil if @log[day]==nil #2015.1.21
+    return @log[day] if mado==nil
+    @log[day][mado]
   end
   def kaichojikan(day)
     @kaichojikan[day]
@@ -148,7 +153,8 @@ class Kakolog
   end
 end
 
-def hp_graph_data(kubun,log,kaichojikan)
+def hp_graph_data(day,log,kubun)
+  kaichojikan=day.kaichojikan
   str=""
   case kubun
   when :suii_hun
@@ -158,7 +164,7 @@ def hp_graph_data(kubun,log,kaichojikan)
       if hun==nil
         str << "<dt>#{ji.hour}時：…分</dt><dd>&nbsp;</dd>\n"
       elsif hun>1
-        str << "<dt>#{ji.hour}時：#{hun.to_s}分</dt><dd><span>#{"i" * (hun/2).to_i}</span></dd>\n"
+        str << "<dt>#{ji.hour}時：#{hun.to_s}分</dt><dd><span>#{"|" * (hun/2).to_i}</span></dd>\n"
       else
         str << "<dt>#{ji.hour}時：#{hun.to_s}分</dt><dd>&nbsp;</dd>\n"
       end
@@ -169,8 +175,8 @@ def hp_graph_data(kubun,log,kaichojikan)
       next if ji=="17:00"  #17時現在ははずす。
       if nin==nil
         str << "<dt>#{ji.hour}時：…人</dt><dd>&nbsp;</dd>\n"
-      elsif nin>1
-        str << "<dt>#{ji.hour}時：#{nin.to_s}人</dt><dd><span>#{"i" * nin.to_i}</span></dd>\n"
+      elsif nin>0
+        str << "<dt>#{ji.hour}時：#{nin.to_s}人</dt><dd><span>#{"|" * nin.to_i}</span></dd>\n"
       else
         str << "<dt>#{ji.hour}時：#{nin.to_s}人</dt><dd>&nbsp;</dd>\n"
       end
@@ -182,8 +188,8 @@ def hp_graph_data(kubun,log,kaichojikan)
       ji="0#{ji}"[-2,2]
       if nin==nil
         str << "<dt>#{ji}時:…人</dt><dd>&nbsp;</dd>\n"
-      elsif nin>1
-        str << "<dt>#{ji}時:#{nin.to_s}人</dt><dd><span>#{"i" * nin.to_i}</span></dd>\n"
+      elsif nin>0
+        str << "<dt>#{ji}時:#{nin.to_s}人</dt><dd><span>#{"|" * nin.to_i}</span></dd>\n"
       else
         str << "<dt>#{ji}時:#{nin.to_s}人</dt><dd>&nbsp;</dd>\n"
       end
@@ -199,37 +205,45 @@ def html_th(days)
   days.each do |day|
     th.push(day.day_to_jan)
   end
-  s="<th nowrap class=\"date\">\n"+th.join("</th><th nowrap class=\"date\">")+"</th>"
-  s=s.sub(/(date)(\">[^>]*<\/th>)$/,'\1 table_box_r\2')
+  th_option='scope="col" nowrap class="date"'
+  s="<th>"+th.join("</th>\n    <th>")+"</th>"
+  s=s.sub(/(date)(\">[^>]*<\/th>)$/,'\1 table_box_r\2').gsub(/<th>/,"<th #{th_option}>")
   s
 end
 
 #***** HP用データのグラフ部分のタグデータ *****
 #      引数kakologはKakologクラスのオブジェクト
 def html_suii(kubun,kakolog,mado)
+  def str(day,log,kaihei,kubun)
+    case kaihei
+    when :kaichobi
+      "<dl>#{hp_graph_data(day,log,kubun)}</dl>"
+    when :heichobi
+      "(閉庁日)"
+    when :kakusyu_kaichobi
+      s="※#{(day.nan_yobi)[0]}曜開庁の日です。" #2014.11.7
+      if $url_doyokaicho
+        s="<a href=\"#{$url_doyokaicho}\">#{s}</a>"
+      end
+      s
+    when :closed_mado
+      $close_message[:suii]
+    else
+      "　" #明日以降の開庁日はコメントなしのブランク表示
+    end
+  end
+  def status(day,log,mado)
+    return :heichobi         if day.heichobi?
+    return :closed_mado      if day.closed(mado)
+    return :kaichobi         if log
+    return :kakusyu_kaichobi if day.kakusyu_kaichobi?
+    :else #明日以降の開庁日
+  end
   suii=""
   kakolog.days.each do |day|
-    if kakolog.log(day)
-      unless day.closed_mado.include? mado
-        log         = kakolog.log(day,mado)
-        kaichojikan = kakolog.kaichojikan(day)
-        suii << "<td class=""graph""><dl>\n"+hp_graph_data(kubun,log,kaichojikan)+"</dl></td>\n"
-      else
-        suii << "<td class=""graph"">"+$close_message[:suii]+"</td>\n"
-      end
-    elsif day.heichobi?
-      suii << "<td class=""graph"">(閉庁日)</td>\n"
-    elsif day.kakusyu_kaichobi?
-      unless day.closed_mado.include? mado
-        ku=kakolog.kaichojikan(day)
-        kaichojikan=ku.kaicho+"～"+ku.heicho
-        suii << "<td class=""graph"">※土曜開庁の日です。</td>\n"
-      else
-        suii << "<td class=""graph"">"+$close_message[:suii]+"</td>\n"
-      end
-    else
-      suii << "<td class=""graph"">　</td>\n"
-    end
+    log   =kakolog.log(day,mado)
+    kaihei=status(day,log,mado)
+    suii << "<td class=\"graph\">#{str(day,log,kaihei,kubun)}</td>\n"
   end
   suii
 end
@@ -249,13 +263,12 @@ def make_html_of_week(day,use=:public)
     $mado_array.each do |mado|
       f.gsub!(/<!--#{mado}-SUII-->/)   {|str| html_suii(kubun,kl,mado)}
     end
-    #外部公開用HTML。内部向け用のリンクを削除し、土曜開庁日の説明ページへのリンクを張る。
+    #外部公開用HTML。
     if use==:public
-      f=delete_link(f)
-      f=add_link_to_doyokaicho(f)
-    #内部モニター用HTML。前後の週のHTMLへのリンク等を作成する。
+      f=delete_link(f)                       #内部モニター用のリンクを削除する。
+    #内部モニター用HTML。
     elsif use==:local
-      f=make_link(f,day)
+      f=make_link(f,day)                     #前後の週のHTMLへのリンク等を作成する。
     end
     fname = Myfile.file_name(kubun)
     fname = fname.sub('.html',"(#{day.previous_monday}).html") unless day.this_week?
@@ -270,13 +283,6 @@ end
 def delete_link(str)
   str.gsub!(/<!--local-use-->.*$/)      {|w| ""} #1行すべて削除
   str.gsub!(/<!--public-use-->/)        {|w| ""} #無用のタグを削除
-  str
-end
-
-#公開用ページに土曜開庁日の説明ページへのリンクを付加
-def add_link_to_doyokaicho(str)
-  url = "http://www.city.yokohama.lg.jp/hodogaya/madoguti/doyou-kaichou.html"
-  str.gsub!(/土曜開庁.*日/)              {|w| "<a href=\"#{url}\">#{$&}</a>"}
   str
 end
 
@@ -339,9 +345,11 @@ def make_suii_during_optional_period(day1,day2=Today,use=:local)
 end
 
 #make_html_of_week("20140627",:public)
-#puts make_suii_during_optional_period("20130701","20140530",:local)
+#puts make_suii_during_optional_period("20130610","20140101",:local)
 #puts make_suii_for_monitor
 #kubuns=Myfile.keys_of_suii.reject{|key| key.to_s=~/sya_?su/}
 #p kubuns
 #files=make_suii_during_optional_period("20140616",day2=Today,use=:local)
 
+
+#puts make_suii_during_optional_period("20130610","20141001",:local)

@@ -1,6 +1,6 @@
 # -*- coding: Shift_JIS -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.0 (2014.9.24)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.2 (2015.1.21)            #
 #                                                                                #
 #                           HTLM生成、FTP送信編                                  #
 #                                                                                #
@@ -250,9 +250,7 @@ def 業務終了処理
   #待ち人数があるにも関わらず発券機が落とされた場合の後処理
   #発券だけのデータを削除し待ち人数をゼロにする。
   $mado_array.each do |mado|
-    list   = $log[mado].raicholist
-    delete = list.select{|sya| sya.time_h>$ku.heicho and sya.time_y==nil and sya.time_c==nil}
-    $log[mado].raicholist = list - delete
+    $log[mado]=$log[mado].reject{|sya| sya.time_h>$ku.heicho and sya.time_y==nil and sya.time_c==nil}
   end
   #ホームページ、課内モニタを更新する
   通常処理

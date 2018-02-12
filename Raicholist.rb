@@ -1,6 +1,6 @@
 # -*- coding: Shift_JIS -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.1 (2014.10.27)           #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.2 (2015.2.20)            #
 #                                                                                #
 #        <<オブジェクト定義、ユーティリティメソッド及びオプション機能>>          #
 #                                                                                #
@@ -24,8 +24,8 @@ require "./holiday_japan"
 
 #*** マイドキュメントフォルダ ***
 wsh = WIN32OLE.new('WScript.Shell')
-MYDOC=wsh.SpecialFolders('MyDocuments').force_encoding("Shift_JIS")
-DESKTOP=wsh.SpecialFolders('Desktop').force_encoding("Shift_JIS")
+MYDOC=wsh.SpecialFolders('MyDocuments').encode("Shift_JIS")
+DESKTOP=wsh.SpecialFolders('Desktop').encode("Shift_JIS")
 wsh=nil
 
 
@@ -638,11 +638,24 @@ end
 
 
 class NilClass
-  def method_missing(method,*)
-    #前段：RaichoListを時刻の条件で絞り込むとき,nilと時刻の大小比較を可能とする。
-    #後段：該当Raichosyaが存在しない場合を考慮せずに、Raichosyaに対するメソッドを使用可能とする。
-    if [:>,:<,:>=,:<=].include?(method) or RaichoSya.instance_methods.include? method
-      nil
+  #該当Raichosyaが存在しない場合を考慮せずに、Raichosyaに対するメソッドを使用可能とする。  
+  [:time_h,:bango,:id,:time_y,:time_c,:machi_su,:to_a,:time,:machi_hun].each do |method|
+    define_method(method) do |*arg|
+      if method==:id
+        0
+      else
+        nil
+      end
+    end
+  end
+  #RaichoListを時刻の条件で絞り込むとき,nilと時刻の大小比較を可能とする。
+  [:>,:<,:>=,:<=].each do |name|
+    define_method(name) do |arg|
+      if arg.class==String and arg.match(/\d\d:\d\d/)
+        nil
+      else
+        raise NoMethodError,"\"nil #{name} #{arg}\"は無効です。\n",caller
+      end
     end
   end
   def nil_to_bar
@@ -656,13 +669,14 @@ end
 
 #以下は、独自のオブジェクトクラス定義
 class VcallMonitor
-  attr_reader :login_time
+  attr_reader :login_time, :monitor_started
   def initialize
     @vcall_exe=$vcall_exe
     @vcall_path=$vcall_path
     @moniter_system_window_title=$moniter_system_window_title
     @vcall_hakkenki_address=$vcall_hakkenki_address
     @login_time=nil
+    @monitor_started=nil
   end
   #***** ログインしているかどうか(ログインしているときは@login_timeをセット) *****
   def login?
@@ -762,6 +776,7 @@ class VcallMonitor
   def start_vcall_monitor
     5.times do |i|
       if start == :success and data_communication_with_hakkenki=="通信中"
+        @monitor_started = true #2015.2.19
         return :success
       else
         stop
@@ -957,7 +972,7 @@ class MadoSysFile
         file[:topic]    =$topic
       end
     end
-    dir[:current]   =__dir__.force_encoding("Shift_JIS")
+    dir[:current]   =__dir__.encode("Shift_JIS")
     dir[:temp]      =dir[:current]+"/"+$temp_folder if $temp_folder
     dir[:subst]     =$substitute_folder             if $substitute_folder
     dir[:ftp]       =$ftp_dir                       if $ftp_dir
@@ -1247,6 +1262,7 @@ class LogEvents
     end
   end
   def size
+    return 0 if @events==nil
     @events.size
   end
   def display
@@ -1277,8 +1293,8 @@ end
 
 #*** 来庁者クラス ***
 class RaichoSya  
-  attr_accessor :time_h, :bango, :id, :time_y, :time_c, :machi_su
-  def initialize(time_h=nil, bango="－", id=nil, time_y=nil, time_c=nil, machi_su=nil)
+  attr_accessor :time_h, :bango, :id, :time_y, :time_c,  :machi_su
+  def initialize(time_h=nil, bango="－", id=0, time_y=nil, time_c=nil, machi_su="…")
     @time_h = time_h
     @bango  = bango
     @id     = id
@@ -1301,11 +1317,61 @@ class RaichoSya
       @time_y
     end
   end
+  def hakken_time(*arg)  #2015.1.18追加
+  #arg…:explain=>"(不明)",OR "…"
+    return unknown(arg)  if @time_h==nil
+    @time_h
+  end
+  def yobidashi_time(*arg)  #2015.1.18追加
+  #arg…:explain            =>"(キャンセル)","(待ち中)"
+  #     :explain and :ended =>"(キャンセル)","(不明)"
+  #     :ended              =>     "－"     ,  "…"
+  #      else case          =>     "－"     ,  "－"
+    return cancel(arg)  if @time_c!=nil
+    return waiting(arg) if @time_y==nil
+    @time_y
+  end
+  def machi_su_nin  #2015.1.18追加
+    return @machi_su if @machi_su=="…"
+    @machi_su.to_s + "人"
+  end
   def machi_hun
     return nil             if @time_h == nil
     return @time_y-@time_h if @time_y != nil
     return @time_c-@time_h if @time_c != nil
     TimeNow-@time_h
+  end
+  def waiting_time(*arg)  #2015.1.18追加
+  #arg…:explain=>"(キャンセル)","(不明)"
+  #     :hun=>"○分"
+  #     :keika=>"○分経過"
+    return cancel(arg)   if    @time_c!=nil
+    return unknown(arg)  if    @time_h==nil
+    if    arg.include?(:keika); self.machi_hun.to_s + "分経過"
+    elsif arg.include?(:hun)  ; self.machi_hun.to_s + "分"
+    else                      ; self.machi_hun.to_s
+    end
+  end
+  def waited_time(*arg)  #2015.1.18追加
+  #arg…:explain=>"(キャンセル)","(不明)"
+  #     :hun=>"○分"
+    return cancel(arg)   if    @time_c!=nil
+    return unknown(arg)  if    @time_h==nil or @time_y==nil
+    if arg.include?(:hun)     ; self.machi_hun.to_s + "分"
+    else                      ; self.machi_hun.to_s
+    end
+  end
+  def cancel(*arg)  #2015.1.18追加
+    arg.flatten.include?(:explain)  ? "(キャンセル)" : "－"
+  end
+  def unknown(*arg)  #2015.1.18追加
+    arg.flatten.include?(:explain) ? "(不明)"       : "…"
+  end
+  def waiting(*arg)  #2015.1.18追加
+    return "(不明)"   if ([:explain,:ended]-arg.flatten).empty?
+    return   "…"     if arg.flatten.include?(:ended)
+    return "(待ち中)" if arg.flatten.include?(:explain)
+    "－"
   end
 end
 
@@ -1314,11 +1380,11 @@ end
 class RaichoList
   include Enumerable
   attr_accessor :log_file,:mado,:raicholist,:day
-  def initialize(log_file=nil,mado=nil,day=nil)
+  def initialize(log_file=nil,mado=nil,day=nil,raicholist=[])
     @log_file=log_file
     @mado=mado
     @day=day
-    @raicholist=Array.new
+    @raicholist=raicholist
   end
   def self.setup(log_file,mado_array,day=Today)
     @@list=Array.new
@@ -1328,17 +1394,20 @@ class RaichoList
       log[mado] = self.new(log_file,mado,day)      
       @@list << log[mado]
     end
-    @@events=LogEvents.setup(log_file,day)
-    @@events.each do |event|
+    events=LogEvents.setup(log_file,day)
+    #*** 発券データを元に来庁者オブジェクトを生成しリストに追加する(番号が跳ぶときは補完する)。***
+    events.each do |event|
       if event.kubun==:hakken
         log[event.mado].add_raichosya(event.bango,event.time)
       end
     end
-    @@events.each do |event|
+    #*** 呼出データとキャンセルデータの時刻を来庁者オブジェクトに追記する。
+    events.each do |event|
       if event.kubun==:yobidashi or event.kubun==:cancel
         log[event.mado].add_time(event.time,event.kubun,event.bango)
       end
     end
+    #*** 来庁者オブジェクトに発券時の待ち人数を追記する。
     @@list.each do |log|
       log.add_machi_su
     end
@@ -1384,7 +1453,7 @@ class RaichoList
   def add_time(time,kubun,bango)
     list=self.reject_sya_hakkened_after(time)
     sya=list.select{|sya| sya.bango==bango and sya.time(:yobidashi_or_cancel)==nil}[-1]
-    if sya.id>0
+    if sya!=nil
       case kubun
       when :yobidashi  ; sya.time_y=time #同一番号が複数ある場合を考慮
       when :cancel     ; sya.time_c=time
@@ -1399,12 +1468,13 @@ class RaichoList
     end
   end
   #指定時刻より後に発券したsyaを除外した来庁者リストオブジェクト
+  #(発券時刻不明のsyaがあることを考慮している。）
   def reject_sya_hakkened_after(time)
     id=self.find{|sya| sya.time(:hakken)>time}.id
-    unless id==nil
-      self.reject{|sya| sya.id>=id}
-    else
+    if id==0 #指定時刻より後に発券したsyaがない場合
       self
+    else
+      reject{|sya| sya.id>=id}
     end
   end
   def isdropped?(bango,time)
@@ -1430,17 +1500,6 @@ class RaichoList
   def add_list(list)
     @raicholist=list
   end
-  def self.events
-    @@events
-  end
-  #*** events配列の部分集合 2014.07.19修正 ***
-  def self.part_events(mado=nil,kubun=nil)
-    m,k = mado,kubun
-    return self.events                                              if m==nil and k==nil
-    return self.events.select{|event| event.kubun== k}              if m==nil
-    return self.events.select{|event| event.mado == m}              if k==nil
-    self.events.select       {|event| event.kubun== k and mado== m}
-  end
   #*** 来庁者オブジェクトの配列をコンソール画面に展開する。 ***
   def display
     alert "来庁者リストオブジェクト(#{self.mado}番窓口)"
@@ -1460,21 +1519,11 @@ class RaichoList
   end
   #*** selectの戻り値をRaichoListクラスオブジェクトにする
   def select
-    l=@raicholist.select  do |sya|
-      yield sya
-    end
-    list=RaichoList.new
-    list.add_list(l)
-    list
+    RaichoList.new(@log_file,@mado,@day,super)
   end
   #*** rejectの戻り値をRaichoListクラスオブジェクトにする
   def reject
-    l=@raicholist.reject  do |sya|
-      yield sya
-    end
-    list=RaichoList.new
-    list.add_list(l)
-    list  
+    RaichoList.new(@log_file,@mado,@day,super)
   end
   def self.log_file
     if @@list.size>0
@@ -1522,23 +1571,20 @@ class RaichoList
   #*** 次に呼び出す予定の来庁者オブジェクト ***
   def next_call(time=TimeNow)
     id=self.yobidashi_sya_just_before(time).id
-    id=0 if id==nil # 2014.4.22
-    list=self.not_called.select{|sya| sya.id>id}
-    return RaichoSya.new() if list.size==0
-    list.min{|sya| sya.id}
+    list=self.find{|sya| sya.id>id and sya.time(:yobidashi)==nil and sya.time(:cancel)==nil}
   end
-  
   
   #※※※※※※※※※※  人数を調べる ※※※※※※※※※※※※
   
   #*** 指定時刻の待ち人数 ***
   def machi_su(time_or_id=TimeNow)
-    case time_or_id.class.to_s
-    when "String" ; time = time_or_id
+    case time_or_id
+    when 0 #RaichoSyaが空データのとき（飛び番号の補完データのときなどはid=0となる）
+      return nil
+    when String ; time = time_or_id
       hakken_id    = hakken_sya_just_before(time).id
       yobidashi_id = yobidashi_sya_just_before(time).id
-      hakken_id    = 0 if hakken_id==nil        #まだ誰にも発券していないとき
-    when "Fixnum" ; id   = time_or_id
+    when Fixnum ; id   = time_or_id
     #特定の来庁者に着目した待ち人数の考え方
     #当該来庁者に発券した結果として、発券機の待ち人数の表示がx人になったとき
     #原則として当該来庁者にとっての待ち人数もx人とする。自分自身を待ち人数に
@@ -1551,11 +1597,13 @@ class RaichoList
       # ↑指定idの人の発券時刻＝呼出時刻のとき、yobidashi_id=idになる。
       time         = self[id].time(:hakken)
     end
-    yobidashi_id = 0 if yobidashi_id==nil  #まだ誰も呼び出していないとき
     canceled     = canceled(yobidashi_id,hakken_id,time) #2014.7.22
     su=hakken_id-yobidashi_id-canceled
     su=0 if su<0  #起動の遅れなどで発券時刻が記録されていないケース等
     su
+  end
+  def machi_su_nin(time_or_id=TimeNow)
+    self.machi_su(time_or_id).to_s + "人"
   end
   #*** 来庁者数１ id番号から計算する（実際の来庁者数に最も近い） ***
   def sya_su(time=TimeNow)
@@ -1563,7 +1611,7 @@ class RaichoList
       h=current(:hakken,time).id
       y=current(:yobidashi,time).id
       c=current(:cancel,time).id
-      [h,y,c].reject{|kubun| kubun==nil}.max
+      [h,y,c].max
     else
       0
     end
@@ -1610,9 +1658,11 @@ class RaichoList
     end
     su
   end
+  def self.machi_su_nin(time=TimeNow)
+    self.machi_su(time).to_s + "人"
+  end
 
-
-  #※※※※※※※※※※  時刻を調べる ※※※※※※※※※※※※  
+  #※※※※※※※※※※  時刻、時間を調べる ※※※※※※※※※  
   
   #*** 来庁者オブジェクトに記録された最終(発券/呼出/キャンセル)時刻 ***
   def last_time(kubun,time=TimeNow)
@@ -1620,18 +1670,41 @@ class RaichoList
   end
   #*** 最新のデータ更新時刻（窓口別） ***
   def last_update_time
-    events=RaichoList.part_events(self.mado)
-    events.max_by{|event| event.time}.time
+    map{|sya| [sya.time(:hakken),sya.time(:yobidashi),sya.time(:cancel)]}.flatten.reject{|t| t==nil}.max
   end
   #*** 最新のデータ更新時刻（全窓口） ***
   def self.last_update_time
-    events=RaichoList.events
-    events.max_by{|events| events.time}.time
+    time=[]
+    RaichoList.each do |list|
+      t = list.last_update_time
+      time << t unless t==nil  #2015.2.20 条件を付加
+    end
+    time.max
   end
-  
+  #*** 次に呼び出す来庁者の現在の待ち時間 2015.1.15 ***
+  def machi_jikan(time=TimeNow)
+    sya = self.next_call
+    return nil if sya.id==0
+    time - sya.time(:hakken)
+  end
+  #*** 直前の呼出しからの経過時間（窓口別） 2015.1.12 ***
+  def keika_jikan(time=TimeNow)
+    hakken_sya    =    hakken_sya_just_before(time)
+    yobidashi_sya = yobidashi_sya_just_before(time)
+    if hakken_sya.id == 0
+      nil
+    elsif machi_su and machi_su==0
+      "－"
+    elsif yobidashi_sya.id==0
+      first_hakken_time = map{|sya| sya.time(:hakken)}.select{|t| t!=nil}.min
+      time - first_hakken_time
+    else
+      time - yobidashi_sya.time(:yobidashi)
+    end
+  end
 
   #※※※※※※※※※※  データ更新状況 ※※※※※※※※※※※※  
-
+  
   #*** 指定時間以内のデータ更新（窓口別）***
   def update?(t)
     time=self.last_update_time
@@ -1659,11 +1732,11 @@ class RaichoList
     return :no_log_file    unless File.exist?(logfile)
     return self.update?(t) if test_mode?(2,3,4,5) #テスト用
     return :no_todays_file if mtime.to_date!=Date.today
-    return Time.now - mtime < t
+    Time.now - mtime < t
   end
   #*** ボイスコールログの全体状況 ***
   def self.state_whole
-    return "no_data"   if self.events.size==0
+    return "no_data"   if self.sya_su==0
     return "no_update" if self.update? == false
     "correct"
   end
@@ -1681,7 +1754,7 @@ class RaichoList
       case compare_mode
       when :yes
         sya=self.complete.hakken_sya_just_before(ji) # machi_hunと同一の来庁者のデータとするためキャンセルした来庁者を除外
-        if sya.id==nil and ji==seiji[0]              # 開庁後最初の正時(9時)でまだ来庁者がないとき 2014.7.19
+        if sya.id==0 and ji==seiji[0]              # 開庁後最初の正時(9時)でまだ来庁者がないとき 2014.7.19
           su[ji]=0
         else
           su[ji]=self.machi_su(sya.id)
@@ -1700,7 +1773,7 @@ class RaichoList
     seiji.each do |ji|
       break if self.log_file==Myfile.file(:log) and TimeNow < ji #2014.9.27 条件の順序を逆転
       sya=self.complete.hakken_sya_just_before(ji) # キャンセルした来庁者を除外
-      if sya.id==nil and ji==seiji[0]              # 開庁後最初の正時(9時)でまだ来庁者がないとき 2014.7.19
+      if sya.id==0 and ji==seiji[0]              # 開庁後最初の正時(9時)でまだ来庁者がないとき 2014.7.19
         hun[ji]=0
       else
         hun[ji]=sya.machi_hun
@@ -1735,121 +1808,116 @@ class RaichoList
     0
   end
 end
-
+#class RaichoList ここまで
 
 
 #*****************************************
 #***** ここからはオプション機能
 #*****************************************
 
-#***** 課内モニター *****
-def make_monitor_data(log)
-  str_tag1 = ""
-  str_tag2 = ""
-  str_tag3 = ""
-  str_csv  = ""
-  $mado_array.each do |mado|
-    sya=log[mado].yobidashi_sya_just_before
-    if sya.id==nil
-      bango             = "－"
-      hakken_ji_machisu = "－"
-      machi_hun         = "－"
-      machisu_now       = "－"
-      id                = nil
-    else
-      bango             = sya.bango.to_s
-      hakken_ji_machisu = sya.machi_su.to_s
-      machi_hun         = sya.machi_hun.to_s
-      hakken_ji_machisu = "･･･" if hakken_ji_machisu ==""
-      machi_hun         = "･･･" if machi_hun==""
-      machisu_now       = log[mado].machi_su
-      id                = sya.id
-    end
-    sya2=log[mado].next_call   
-    if sya2.id!=nil and sya2.time(:hakken) != nil
-    # 2014.4.1 上の2つ目の条件を付加(発券時刻不明の場合のエラーを回避)
-      machi_hun_of_next_num = (TimeNow - sya2.time(:hakken)).to_i.to_s
-      if sya.time(:yobidashi) < sya2.time(:hakken)
-        keika_hun = (TimeNow - sya2.time(:hakken)).to_i.to_s
-      else
-        keika_hun = (TimeNow - sya.time(:yobidashi)).to_i.to_s
-      end
-    else
-      machi_hun_of_next_num = "－"
-      keika_hun             = "－"
-    end
-    str_tag1 << "<tr><td><a href=\"\##{mado}\">#{mado}</a></td>"
-    str_tag1 << "<td>#{bango}</td>"
-    str_tag1 << "<td>#{hakken_ji_machisu}人</td>"
-    str_tag1 << "<td>#{machi_hun}分</td>"
-    if machisu_now.to_i > 19
-      str_tag1 << "<td><span class=\"alert\">#{machisu_now}人</span></td>"
-    else
-      str_tag1 << "<td>#{machisu_now}人</td>"
-    end
-    if machi_hun_of_next_num.to_i > 49
-      str_tag1 << "<td><span class=\"alert\">#{machi_hun_of_next_num}分</span></td>"
-    else
-      str_tag1 << "<td>#{machi_hun_of_next_num}分</td>"
-    end
-    if keika_hun.to_i > 10
-      str_tag1 << "<td><span class=\"alert\">#{keika_hun}分</span></td>\n"
-    else
-      str_tag1 << "<td>#{keika_hun}分</td>\n"
-    end
-    mado_start = true
-    log[mado].each do |sya|
-        bango = sya.bango.to_s
-        su    = sya.machi_su.to_s
-        hun   = sya.machi_hun.to_s
-        su    = "･･･" if su ==""
-        hun   = "･･･" if hun==""
-      if sya.time(:hakken)==nil and sya.time(:yobidashi)==nil and sya.time(:cancel)==nil
-        time     = "不明 → 不明"
-        ary = [mado,  bango,  "･･･",  time,  "･･･"]
-        if id!=nil and sya.id < id
-          str_tag3 << "<tr><td>" << ary.join("</td><td>") << "</td></tr>\n"
-        else
-          str_tag2 << "<tr><td>" << ary.join("</td><td>") << "</td></tr>\n"
-        end
-      elsif sya.time_y==nil and sya.time_c==nil
-        if id!=nil and sya.id < id
-          time     = sya.time(:hakken) + "→ (不明）"
-          ary = [mado,  bango,  su+"人",  time,  "･･･"]
-          str_tag3 << "<tr><td>" << ary.join("</td><td>") << "</td></tr>\n"
-        else
-          time     = sya.time(:hakken) + "→ (待ち中)"
-          ary = [mado,  bango,  su+"人",  time,  hun+"分経過"]
-          str_tag2 << "<tr><td>" << ary.join("</td><td>") << "</td></tr>\n"
-        end
-      else
-        if sya.time_c!=nil
-          time     = sya.time(:hakken).nil_to_humei + "→" + "キャンセル"
-        elsif sya.time_y!=nil
-          time     = sya.time(:hakken).nil_to_humei + "→" + sya.time(:yobidashi)
-        end
-        ary = [mado,bango,su+"人",time,hun+"分"]
-        if mado_start==true
-          str_tag3 << "<tr><td><a name=\"#{mado}\"></a>" << ary.join("</td><td>") << "</td></tr>\n"
-          mado_start=false
-        else
-          str_tag3 << "<tr><td>" << ary.join("</td><td>") << "</td></tr>\n"
-        end
-        ary = [mado,bango,su,time,hun]
-        str_csv  << ary.join(",") << "\n"
-      end
+#***** 課内モニター 2015.1.18 内部コードを大幅に刷新 *****
+#*** RaichoSyaクラスの拡張 ***
+class RaichoSya
+  #*** 発券時刻 → 呼出時刻 の文字列を返す ***
+  def h2y(*mode)
+    ary=mode.flatten
+    self.hakken_time(ary) + " → " + self.yobidashi_time(ary)
+  end
+  #*** 番号別のHTMLの１行 ***
+  def html_bango_betsu(mado,*mode)
+    ary=mode.flatten
+    str =  "<tr>"
+    str << "<td><a name=\"#{mado}\">#{mado}</a></td>"
+    str << "<td>#{self.bango.to_s}</td>"
+    str << "<td>#{self.machi_su_nin}</td>"
+    str << "<td>#{self.h2y(ary)}</td>"
+    str << "<td>#{self.hun(ary)}</td>"
+    str << "</tr>\n"
+    str
+  end
+  def csv_bango_betsu(mado)
+    ary=[]
+    ary << mado
+    ary << self.bango
+    ary << self.machi_su
+    ary << self.h2y(:ended)
+    ary << self.hun(:excel)
+    ary.join(",")
+  end
+  def hun(*mode)
+    ary=mode.flatten
+    if    ary.include?(:ended)    ; self.waited_time(:hun)    
+    elsif ary.include?(:waiting)  ; self.waiting_time(:keika) 
+    elsif ary.include?(:excel)    ; self.waited_time()        
     end
   end
-  [str_tag1,str_tag2,str_tag3,str_csv]
 end
+#*** RaichoListクラスの拡張 ***
+class RaichoList
+  #*** 課内モニター画面の最初の概況セクション ***
+  def html_gaikyo
+    sya=current(:yobidashi)
+    str = "<tr>"
+    str << "<td><a href=\"\##{self.mado}\">#{self.mado}</a></td>"
+    str << "<td>#{sya.bango.to_s         }</td>"
+    str << "<td>#{sya.machi_su_nin       }</td>"
+    str << "<td>#{sya.hun(:ended)        }</td>"
+    str << "<td>#{add_alert(:machi_su)   }</td>"
+    str << "<td>#{add_alert(:machi_jikan)}</td>"
+    str << "<td>#{add_alert(:keika_jikan)}</td>"
+    str << "</tr>\n"
+    str.gsub("経過","")
+  end
+  #*** 課内モニター画面の番号待ち状況（待ち中）のセクション ***
+  def html_machichu
+    id = self.current(:yobidashi).id
+    res= ""
+    self.each do |sya|
+      next if sya.id<=id
+      res << sya.html_bango_betsu(self.mado,:waiting,:explain)
+    end
+    res
+  end
+  #*** 課内モニター画面の番号待ち状況（終了分）のセクション ***
+  def html_syuryo
+    id = self.current(:yobidashi).id
+    res= ""
+    self.each do |sya|
+      break if sya.id>id
+      res << sya.html_bango_betsu(self.mado,:ended,:explain)
+    end
+    res  
+  end
+  #*** 人、分等を付加すると共に、一定以上の待ち人数、待ち時間のとき赤字で大きく表示する ***
+  def add_alert(method)
+    case method
+    when :machi_su      ;borders,pos = {:machi_su=>19}                     ,"人"
+    when :machi_jikan   ;borders,pos = {:machi_jikan=>29}                  ,"分"
+    when :keika_jikan   ;borders,pos = {:keika_jikan=>15,:machi_jikan=>15} ,"分経過"
+    end
+    res=self.send(method)
+    borders.each do |method,border|
+      return "－"          if res==nil
+      return res.to_s+pos  if res.to_i<border and res.to_s.match(/^\d+$/) #基準未満の数字のみの場合
+      return res           if res.to_i<border
+    end
+    "<span class=\"alert\">#{res.to_s+pos}</span>"
+  end
+end
+
 def make_monitor_html(log)
   if Myfile.dir(:monitor)
-      $monitor_data = make_monitor_data(log)
       f=File.read(Myfile.hinagata(:monitor))
-      f.sub!(/<GENZAI>/)      {|str| genzai}
-      f.sub!(/<UKETSUKECHU>/) {|str| $monitor_data[0]}
-      f.sub!(/<MACHICHU>/)    {|str| $monitor_data[1]}
-      f.sub!(/<SYURYO>/)      {|str| $monitor_data[2]}
+      f.sub!(/<GENZAI>/)     {|str| "#{Today.day_to_jan} #{TimeNow.time_to_jan}現在"}
+      f.sub!(/<UKETSUKECHU>/) do |str|
+        s="";$mado_array.each{|m| s << log[m].html_gaikyo}  ;s
+      end
+      f.sub!(/<MACHICHU>/) do |str|
+        s="";$mado_array.each{|m| s << log[m].html_machichu};s
+      end
+      f.sub!(/<SYURYO>/) do |str|
+        s="";$mado_array.each{|m| s << log[m].html_syuryo}  ;s
+      end
       temp = Myfile.dir(:temp)+"/"+Myfile.file_name(:monitor)
       to   = Myfile.dir(:monitor)
       File.write(temp,f)
@@ -1859,6 +1927,15 @@ def make_monitor_html(log)
         popup "「#{$monitor_folder}」が存在しないため、課内モニタ用のHTMLを保存することができません。"
       end
   end
+end
+def make_csv_data(log)
+  csv=""
+  $mado_array.each do |mado|
+    log[mado].each do |sya|
+      csv << sya.csv_bango_betsu(mado)  << "\n"
+    end
+  end
+  csv
 end
 
 
@@ -1945,21 +2022,19 @@ end
 
 #****エクセルのファイルの作成******
 def make_xlsx(log)
-  $monitor_data=make_monitor_data unless defined? $monitor_data
-  str    = "#{Time.parse(Today).strftime('%Y年%m月%d日')}の窓口状況\n\n"
+  str    = "#{Today.day_to_jan}の窓口状況\n\n"
   $mado_array.each do |mado|
-    str += "#{mado}番窓口: 来庁者数 #{log[mado].sya_su.to_s}、 平均待ち時間 #{log[mado].average_machi_hun.to_s} 分\n" 
+    str << "#{mado}番窓口: 来庁者数 #{log[mado].sya_su.to_s}、 平均待ち時間 #{log[mado].average_machi_hun.to_s} 分\n" 
   end
-  str   += "\n"
-  str   += "窓口,番号,発券時待ち人数,発券時刻→呼出時刻,待ち時間\n"
-  str   += $monitor_data[3]
+  str   << "\n"
+  str   << "窓口,番号,発券時待ち人数,発券時刻→呼出時刻,待ち時間\n"
+  str   << make_csv_data(log)
   temp   = Myfile.dir(:temp)+"/temp.csv"
   begin
     File.write(temp,str)
     xl = WIN32OLE.new('Excel.Application')
     book = xl.Workbooks.Open(temp)
-    #xl.visible=true
-    
+#xl.visible=true
     book.ActiveSheet.Columns("A").ColumnWidth = 8.38  
     book.ActiveSheet.Columns("B").ColumnWidth = 8.38
     book.ActiveSheet.Columns("C").ColumnWidth = 14.25
@@ -1986,7 +2061,8 @@ def make_xlsx(log)
     if Myfile.dir(:excel)
       FileUtils.cp_r(book_name,Myfile.dir(:excel),{:preserve => true})
     end
-  rescue
+  rescue =>e
+#popup e.message.force_encoding("Shift_JIS") + "\n\n#{temp}"
     #原因不明であるが、環境によってはOLEオートメーションのアクセスを拒否される場合がある。
     #その場合の代替処理として、同じ内容のcsvファイルを保存する。
     csv_name="#{Myfile.dir(:excel)}/窓口待ち状況(#{Time.parse(Today).strftime('%Y-%m-%d')}).csv"

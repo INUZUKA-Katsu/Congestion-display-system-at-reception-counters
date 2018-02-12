@@ -1,6 +1,6 @@
 # -*- coding: Shift_JIS -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.2.8 (2014.8.15)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.2 (2015.2.20)            #
 #                                                                                #
 #              モニターシステム接続監視＆自動再接続編                            #
 #                                                                                #
@@ -98,6 +98,10 @@ module AutCon
     when :connect
       title = "【報告】モニタシステムと発券機の再接続成功"
       body = "モニタシステムを再起動し、発券機と再接続しました。"
+    when :start_error # 2015.2.20 1st stage で起動できないまま 2nd stage に進んだ場合
+      title = "【警告】モニタシステム起動失敗"
+      body  = "モニタシステムの運用モニタ画面を表示することができませんでした。"
+      body << "手動操作によって運用モニタ画面を表示させてください。"
     end
     send_mail(title,body)
   end
@@ -158,12 +162,15 @@ p "1st stage"
       StartMonitor.write_log(:start)
       break
     else
+      sleep 5
       next if i<4
       StartMonitor.send_mail_by_situation(:start_error)
       StartMonitor.write_log(:start_error)
+      #モニタシステム不起動のまま 2nd stage に進む。
     end
     sleep 1
   when :vcall_path_not_exist
+  #設定が間違っていたとき
     popup "モニタシステム起動・常時監視プログラムを終了します。"
     exit
   end
@@ -177,21 +184,27 @@ loop do
   p Time.now
   next  if $ku.kaicho > Time.now.to_hhmm                           # 開庁時間前は何もせず待機
   break if $ku.heicho < Time.now.to_hhmm                           # 閉庁時間後は終了
-  case $vcall.data_communication_with_hakkenki                      # 発券機との通信状況を確認する。
+  case $vcall.data_communication_with_hakkenki                     # 発券機との通信状況を確認する。
   when "通信中"
+    p "通信中"
     next
   when "通信切断"
     sleep 3
     next unless $vcall.data_communication_with_hakkenki=="通信切断" # 念のため3秒待って再確認。
-    AutCon.send_mail_by_situation(:first_info)                      # やはりダメなら最初の報告メールを送信。
-    AutCon.write_log(:first_info)
+    if $vcall.monitor_started
+      mes = :first_info
+    else
+      mes = :start_error
+    end
+    AutCon.send_mail_by_situation(mes)                              # やはりダメなら最初の報告メールを送信。
+    AutCon.write_log(mes)
     $vcall.restart_vcall_monitor                                    # モニタシステムを再起動
     if $vcall.data_communication_with_hakkenki=="通信中"            # 復旧したか確認
       AutCon.send_mail_by_situation(:connect)
       AutCon.write_log(:connect)
     else
-      AutCon.send_mail_by_situation(:connect_error)
-      AutCon.write_log(:connect_error)
+      AutCon.send_mail_by_situation(:reconnect_error)
+      AutCon.write_log(:reconnect_error)
     end
   when "回線途絶"                                                  # ping応答もないとき
     sleep 3
