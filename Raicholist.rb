@@ -2324,10 +2324,11 @@ class LogBack
   def self.log_data_backup(option=:and_erase)
     new=File.read(Myfile.file(:log))
     todays_file = Myfile.dir(:kako_log)+"/"+Today+".log"
-    File.open(todays_file,"a") do |f|
-      f.puts new
+    if File.exist?(todays_file)
+      f=File.read(todays_file)
+      new=f+"\n"+new
     end
-    f=File.readlines(todays_file).map{|l| l.chomp}.uniq.sort.join("\n")+"\n"  # 2018.3.21
+    f=new.split("\n").select{|l| l.size.between?(20,23)}.uniq.sort.join("\n")+"\n"  # 2018.3.21
     File.write(todays_file,f)
     if option==:and_erase and test_mode? == false and File.exist?(newest)
       File.write(Myfile.file(:log) , "")
