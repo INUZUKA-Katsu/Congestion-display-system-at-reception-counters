@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.352 (2017.11.5)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.353 (2018.3.21)            #
 #                                                                                #
 #                      <<オブジェクトの生成（初期化）>>                          #
 #                                                                                #
@@ -23,12 +23,12 @@ $test_mode=0 until defined? $test_mode
 load "./config_for_development.txt" if [2,3,4,5].include?($test_mode) and $development_mode==true
 
 
-#*****設定ファイルの読込み確認ファイル「設定値一覧.txt」を保存（2017.11.5）*****
-ConfigSet.make_table_of_setted_value if [1,2,3,4,5,6].include?($test_mode)
-
-
 #*****ライブラリの読み込み*****
 require "./Raicholist"
+
+
+#*****設定ファイルの読込み確認ファイル「設定値一覧.txt」を保存（2017.11.5, 2018.3.21 Raicholist.rbを読み込んだ後に移置）*****
+ConfigSet.make_table_of_setted_value if [1,2,3,4,5,6].include?($test_mode)
 
 
 #***** 設定ファイルを元にMadoSysFileクラスオブジェクトを設定(2014.3.31) *****
