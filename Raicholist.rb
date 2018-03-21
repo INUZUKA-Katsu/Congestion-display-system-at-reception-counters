@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.352 (2017.11.5)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.353 (2018.3.21)            #
 #                                                                                #
 #        <<オブジェクト定義、ユーティリティメソッド及びオプション機能>>          #
 #                                                                                #
@@ -69,7 +69,7 @@ end
 
 class ConfigSet
   #*** 環境設定値（config.txt）の一覧作成 2017.11.5 ***
-  def make_table_of_setted_value()
+  def self.make_table_of_setted_value()
     conf = File.read("./config.txt")
     hensu=conf.scan(/^#?\$[a-z_0-9\-]+/).map{|h| h.sub("#","")}.uniq.sort
     su=hensu.map{|h| h.size}.max
@@ -1400,6 +1400,7 @@ class LogEvents
   def self.data_error(log_file,mado,bango)
     err_mess  = "#{mado}番窓口に割当てられた番号範囲外の番号 #{bango.to_s}"
     err_mess += " がログファイル( #{log_file} )にあるためプログラムの実行を中止しました。"
+    puts err_mess
     popup err_mess,48,"エラー"
     exit
   end
@@ -2326,6 +2327,8 @@ class LogBack
     File.open(todays_file,"a") do |f|
       f.puts new
     end
+    f=File.readlines(todays_file).map{|l| l.chomp}.uniq.sort.join("\n")+"\n"  # 2018.3.21
+    File.write(todays_file,f)
     if option==:and_erase and test_mode? == false and File.exist?(newest)
       File.write(Myfile.file(:log) , "")
     end
