@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.352 (2018.3.21)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.353 (2018.3.21)            #
 #                                                                                #
 #                       過去ログの分析編                                         #
 #                                                                                #
@@ -41,8 +41,8 @@ class Kakolog
   end
   #指定した複数日付の過去ログファイルに欠落があるか。
   #戻り値： 欠落あり=>true、欠落なし=>false (祝日は考慮しない)
-  def self.lack_of_kako_log
-    @days.each do |day|
+  def self.lack_of_kako_log(*days)  # 2018.3.21 Bug fix（not use on new version.）
+    days.flatten.each do |day|                    
       next if day>Today or day.log_file
       return true
     end
