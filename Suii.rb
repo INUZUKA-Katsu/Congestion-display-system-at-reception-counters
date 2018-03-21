@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.352 (2017.9.10)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.352 (2018.3.21)            #
 #                                                                                #
 #                       過去ログの分析編                                         #
 #                                                                                #
@@ -128,6 +128,12 @@ def html_suii(kubun,kakolog,mado)
         s="<a href=\"#{$url_doyokaicho}\">#{s}</a>"
       end
       s
+    when :rinji_kaichobi                         #2018.3.21
+      s="※臨時開庁日です。"
+      unless $url_rinjikaicho
+        $url_rinjikaicho="http://www.city.yokohama.lg.jp/shimin/madoguchi/koseki/2018spring.html"
+      end
+      "<a href=\"#{$url_rinjikaicho}\">#{s}</a>"
     when :closed_mado
       $close_message[:suii]
     else
@@ -139,6 +145,7 @@ def html_suii(kubun,kakolog,mado)
     return :closed_mado      if day.closed(mado)
     return :kaichobi         if log
     return :kakusyu_kaichobi if day.kakusyu_kaichobi?
+    return :rinji_kaichobi   if day.rinji_kaichobi?         #2018.3.21
     :else #明日以降の開庁日
   end
   suii=""
