@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.353 (2018.3.21)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.354 (2018.10.3)            #
 #                                                                                #
 #                       過去ログの分析編                                         #
 #                                                                                #
@@ -11,7 +11,6 @@
 Encoding.default_external="Windows-31J"
 require './objectinitialize.rb' unless defined? Today
 require "./holiday_japan"
-
 
 class Kakolog
   attr_reader :days
@@ -48,6 +47,50 @@ class Kakolog
     end
     false
   end
+#************* 以下は下位互換のためのメソッド************
+  #指定日付の過去ログファイル(存否を問わない)   2018.10.3 追加
+  def self.kako_log_of(day)
+    "#{Myfile.dir(:kako_log)}/#{day}.log"
+  end
+ #過去ログファイルに含まれる{日付=>ログデータ}
+  def self.lines_of(file)
+    if File.exist? file
+      h    = Hash.new
+      ary  = File.readlines(file)
+      days = ary.map{|line| $& if line=~/^\d{8}/}.uniq
+      days.each do |day|
+        h[day]=ary.select{|line| line[0,8]==day}.map{|line| line.chomp}
+      end
+      h
+    else
+      false
+    end
+  end
+  def self.save_kako_log(date,lines)
+    file=kako_log_of(date)
+    lines.concat File.readlines(file) if File.exist? file
+    ary=lines.select{|line| line=~/\d{8}/ and $&==date}.map{|line| line.chomp}.uniq
+    File.open(file,"w") do |f|
+      ary.each{|l| f.puts l}
+    end
+  end
+  #他の日付のファイルに他の日付のログが含まれていないかを調べ
+  #当該日付名のログファイルを作成する。
+  def self.repair(*days)
+    days.flatten.each do |day|
+      file=kako_log_of(day)
+      if File.exist? file
+        h = lines_of(file)
+        if h.keys.select{|date| date != day}.size>0
+          h.each do |date,lines|
+            save_kako_log(date,lines)
+            p "A log file of date:#{date} was saved(repaired)."
+          end
+        end
+      end
+    end
+  end
+#************* 下位互換メソッドはここまで ********************
 end
 
 def hp_graph_data(day,log,kubun)
@@ -375,6 +418,81 @@ end
 #第2引数に"make_suii" が含まれるとき、モニター画面用の週の推移を作成する。
 #第2引数に"make_exel" が含まれるとき、各日のエクセルファイルを作成する。
 if ARGV[0] and ( ARGV[0]=="all" or ARGV[0].match(/^\d{8}$/) )
+
+  #下位互換のためのコード(ここから)
+  module Excel;end
+  def make_xlsx(xl,logs,day=Today)
+    #CSVファイルを作成・保存
+    str    = "#{day[0,4]}年#{day.day_to_jan}の窓口状況\n\n"
+    $mado_array.each do |mado|
+      str << "#{mado}番窓口: 来庁者数 #{logs[mado].sya_su.to_s}、 平均待ち時間 #{logs[mado].average_machi_hun.to_s} 分\n"
+    end
+    str   << "\n"
+    str   << "窓口,番号,発券時待ち人数,発券時刻→呼出時刻,待ち時間\n"
+    str   << make_csv_data(logs)
+    temp   = Myfile.dir(:temp)+"/temp.csv"
+    #CSVファイルをエクセルで読込んで整形する。
+    begin
+      File.write(temp,str)
+      book     = xl.Workbooks.Open(temp)
+    
+      my_table = book.ActiveSheet.Range("B8").CurrentRegion
+      #列幅
+      [10,10,16,20,10].each_with_index do |width,i|
+        book.ActiveSheet.Columns(i+1).ColumnWidth = width
+      end
+      #文字センター揃え
+      my_table.HorizontalAlignment = Excel::XlCenter
+      #罫線
+      direction=[]
+      direction << Excel::XlEdgeTop
+      direction << Excel::XlEdgeBottom
+      direction << Excel::XlEdgeLeft
+      direction << Excel::XlEdgeRight
+      direction << Excel::XlInsideVertical
+      direction << Excel::XlInsideHorizontal
+      direction.each do |d|
+        my_table.Borders(d).LineStyle = Excel::XlContinuous
+        my_table.Borders(d).ColorIndex = 0
+        my_table.Borders(d).TintAndShade = 0
+        my_table.Borders(d).Weight = Excel::XlThin
+      end
+      #印刷時のタイトル行
+      book.ActiveSheet.PageSetup.PrintTitleRows = "$1:$1"
+
+      #エクセルファイルとして保存する。
+      book_name="#{MYDOC}/窓口待ち状況(#{Time.parse(day).strftime('%Y-%m-%d')}).xlsx".gsub('/','\\')
+      book.SaveAs("Filename"=>book_name,"FileFormat"=>51, "CreateBackup"=>"False")
+      book.Close("False")
+      #共有フォルダにコピーする。
+      if Myfile.dir(:excel)
+        FileUtils.cp_r(book_name,Myfile.dir(:excel),{:preserve => true})
+        p "A Excel file of date:#{day} was saved."
+      end
+      return
+    rescue =>e
+      #popup e.message.force_encoding("Windows-31J") + "\n\n#{temp}"
+      #原因不明であるが、環境によってはOLEオートメーションのアクセスを拒否される場合がある。
+      #その場合の代替処理として、同じ内容のcsvファイルを保存する。
+      csv_name="#{Myfile.dir(:excel)}/窓口待ち状況(#{Time.parse(day).strftime('%Y-%m-%d')}).csv"
+      if Myfile.dir(:excel)
+        FileUtils.cp_r(temp,csv_name)
+        p "A CSV file of date:#{day} was saved."
+      end
+    end
+  end
+  def start_excel()
+    xl = WIN32OLE.new('Excel.Application')
+    xl.Application.DisplayAlerts = "False"
+    WIN32OLE.const_load(xl, Excel) unless defined? Excel::XlAll
+    xl
+  end
+  def stop_excel(xl)
+    xl.Application.DisplayAlerts = "True"
+    xl.Quit
+  end
+  #下位互換のためのコード（ここまで）
+
   def make_suii_html(start_day)
     #週別推移のファイルをtempフォルダに作成し、共有フォルダに複写する。
     files=make_suii_during_optional_period(start_day)
@@ -383,7 +501,7 @@ if ARGV[0] and ( ARGV[0]=="all" or ARGV[0].match(/^\d{8}$/) )
     index=modify_index(files)
     to=Myfile.dir(:suii)+"/index.html"
     FileUtils.cp(index,to)
-    popup Myfile.dir(:suii) + " に保存しました。"
+    #popup Myfile.dir(:suii) + " に保存しました。"
   end
   if ARGV[0] == "all"
     days      = Dir.glob(Myfile.dir(:kako_log)+"/*.log").select{|l| l=~/\d{8}\.log/}.map{|l| l.match(/\d{8}/)[0]}
@@ -393,7 +511,12 @@ if ARGV[0] and ( ARGV[0]=="all" or ARGV[0].match(/^\d{8}$/) )
     days      = (start_day..Today).to_a
   end
   if ARGV[1] and ARGV[1].match(/repair_log/)
+begin
     LogBack.repair(days)
+rescue
+    #下位互換のためのコード
+    Kakolog.repair(days)
+end
   end
   if ARGV[1]==nil or ARGV[1].match(/make_suii/)
     make_suii_html(start_day)
@@ -411,6 +534,7 @@ if ARGV[0] and ( ARGV[0]=="all" or ARGV[0].match(/^\d{8}$/) )
     end
     stop_excel(xl)
   end
+  popup "終了しました。"
 end
 
 
