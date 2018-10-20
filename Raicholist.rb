@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.353 (2018.3.21)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.354 (2018.10.20)           #
 #                                                                                #
 #        <<オブジェクト定義、ユーティリティメソッド及びオプション機能>>          #
 #                                                                                #
@@ -265,8 +265,9 @@ class ConfigSet
 end
 
 
-#***** エラーポップアップ＋エラーログ(最新200行を保持。カレントフォルダに作成) *****
+#***** エラーポップアップ＋エラーログ(最新1000行を保持。カレントフォルダに作成) *****
 END{
+  #指定した行数を越える行を冒頭から削除する。
   def lotation(file,max_lines=1000) #2017.6.24 記録を200行から1000行に変更
     gyo_su = 0
     f=File.read(file)
@@ -283,16 +284,16 @@ END{
       end
     end
   end
-  logger = Logger.new('error.log')
-  logger.level = Logger::ERROR
-  if $!
-    backtrace=$!.backtrace.map{|s| s.force_encoding("Windows-31J")}.join("\n  ")
+  if $! # '$!'は例外オブジェクトが格納される特殊変数
     message=$!.message.force_encoding("Windows-31J")
-    error_mes="#{$!.class}:#{message}\n  #{backtrace}\n"
-    popup(error_mes,16,"エラーのため終了します。",50) unless message=="exit"
-    logger.error(error_mes)
+    backtrace=$!.backtrace.map{|s| s.force_encoding("Windows-31J")}.join("\n  ")
+    if message != "exit" # exitで終了したときはログを残さない.
+      error_mes="#{$!.class}:#{message}\n  #{backtrace}\n"
+      popup(error_mes,16,"エラーのため終了します。",50)
+      Logger.new('error2.log').error(error_mes)
+      lotation('error2.log')
+    end
   end
-  lotation('error.log')
 }
 
 #***** 手動操作による業務終了処理かどうかの判定 *****
