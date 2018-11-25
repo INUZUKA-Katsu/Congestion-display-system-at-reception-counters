@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.354 (2018.10.20)           #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.355 (2018.11.21)           #
 #                                                                                #
 #        <<オブジェクト定義、ユーティリティメソッド及びオプション機能>>          #
 #                                                                                #
@@ -290,8 +290,8 @@ END{
     if message != "exit" # exitで終了したときはログを残さない.
       error_mes="#{$!.class}:#{message}\n  #{backtrace}\n"
       popup(error_mes,16,"エラーのため終了します。",50)
-      Logger.new('error2.log').error(error_mes)
-      lotation('error2.log')
+      Logger.new('error.log').error(error_mes)
+      lotation('error.log')
     end
   end
 }
@@ -2366,21 +2366,48 @@ end
 
 #****エクセルのファイルの作成******
 module Excel;end
-def make_xlsx(xl,logs,day=Today)
-  #CSVファイルを作成・保存
-  str    = "#{day[0,4]}年#{day.day_to_jan}の窓口状況\n\n"
-  $mado_array.each do |mado|
-    str << "#{mado}番窓口: 来庁者数 #{logs[mado].sya_su.to_s}、 平均待ち時間 #{logs[mado].average_machi_hun.to_s} 分\n"
-  end
-  str   << "\n"
-  str   << "窓口,番号,発券時待ち人数,発券時刻→呼出時刻,待ち時間\n"
-  str   << make_csv_data(logs)
-  temp   = Myfile.dir(:temp)+"/temp.csv"
-  #CSVファイルをエクセルで読込んで整形する。
-  begin
+#excelファイル生成メソッド（戻り値：保存したファイル名又はエラーメッセージ）
+#引数 alt_csv:  ture =>excelファイル生成で例外が発生したときcsvファイルを保存する.
+#              :only =>excelファイルではなくcsvファイルを保存する.
+#              その他=>excelファイル生成で例外が発生したときはシステムのエラーメッセージを返す.
+module MakeExcel
+	def self.file_name(day=Today,dir: :temp,file: :excel)
+    if dir == :temp
+      if    file == :csv
+        res = "#{Myfile.dir(:temp)}/temp.csv"
+      elsif file == :excel
+        res = "#{Myfile.dir(:temp)}/temp.xlsx"
+      end
+    else
+      base = "窓口待ち状況(#{Time.parse(day).strftime('%Y-%m-%d')})"
+      if    dir == :mydoc and file == :csv
+        res = "#{MYDOC}/#{base}.csv"
+      elsif dir == :mydoc and file == :excel
+        res = "#{MYDOC}/#{base}.xlsx"
+      elsif dir == :excel and file == :csv
+        res = "#{Myfile.dir(:excel)}/#{base}.csv"
+      elsif dir == :excel and file == :excel
+        res = "#{Myfile.dir(:excel)}/#{base}.xlsx"
+      end
+    end
+    res.gsub('/','\\')
+	end
+  #CSVファイルを生成、一時保存用フォルダに保存
+  def self.make_csv(logs,day)
+    str    = "#{day[0,4]}年#{day.day_to_jan}の窓口状況\n\n"
+    $mado_array.each do |mado|
+      str << "#{mado}番窓口: 来庁者数 #{logs[mado].sya_su.to_s}、 平均待ち時間 #{logs[mado].average_machi_hun.to_s} 分\n"
+    end
+    str   << "\n"
+    str   << "窓口,番号,発券時待ち人数,発券時刻→呼出時刻,待ち時間\n"
+    str   << make_csv_data(logs)
+    temp  = file_name(dir: :temp,file: :csv)
     File.write(temp,str)
-    book     = xl.Workbooks.Open(temp)
-    
+    return temp
+  end
+  #CSVファイルをエクセルで読込んで整形し、一時保存用フォルダに保存
+  def self.make_book_from_csv(xl,csv_file)
+    book     = xl.Workbooks.Open(csv_file)    
     my_table = book.ActiveSheet.Range("B8").CurrentRegion
     #列幅
     [10,10,16,20,10].each_with_index do |width,i|
@@ -2404,35 +2431,67 @@ def make_xlsx(xl,logs,day=Today)
     end
     #印刷時のタイトル行
     book.ActiveSheet.PageSetup.PrintTitleRows = "$1:$1"
-
     #エクセルファイルとして保存する。
-    book_name="#{MYDOC}/窓口待ち状況(#{Time.parse(day).strftime('%Y-%m-%d')}).xlsx".gsub('/','\\')
-    book.SaveAs("Filename"=>book_name,"FileFormat"=>51, "CreateBackup"=>"False")
+    temp = file_name(dir: :temp,file: :excel)
+    book.SaveAs("Filename"=>temp,"FileFormat"=>51, "CreateBackup"=>"False")
     book.Close("False")
-    #共有フォルダにコピーする。
-    if Myfile.dir(:excel)
-      FileUtils.cp_r(book_name,Myfile.dir(:excel),{:preserve => true})
-      p "A Excel file of date:#{day} was saved."
+    return temp
+  end
+  #一時保存用フォルダのファイルを名前をつけてマイドキュメントと共有フォルダに保存
+  def self.save_file(src_name,dest_name1,dest_name2,overwrite: true)
+    FileUtils.cp_r(src_name,dest_name1,{:preserve => true})
+    if Myfile.dir(:excel) and Dir.exist? Myfile.dir(:excel)
+      if overwrite or not File.exist?(dest_name2)
+        FileUtils.cp_r(src_name,dest_name2,{:preserve => true})
+        res = [:ok,dest_name2]
+      elsif File.exist?(dest_name2)
+        res = [:ok,dest_name1,dest_name2]
+      else
+        res = [:ok,dest_name1]              
+      end
+    else
+      res = [:ok,dest_name1]
     end
-    return
-  rescue =>e
-    #popup e.message.force_encoding("Windows-31J") + "\n\n#{temp}"
-    #原因不明であるが、環境によってはOLEオートメーションのアクセスを拒否される場合がある。
-    #その場合の代替処理として、同じ内容のcsvファイルを保存する。
-    csv_name="#{Myfile.dir(:excel)}/窓口待ち状況(#{Time.parse(day).strftime('%Y-%m-%d')}).csv"
-    if Myfile.dir(:excel)
-      FileUtils.cp_r(temp,csv_name)
+    return res
+  end
+  def self.make_xlsx(xl,logs,day=Today,alt_csv: true,overwrite: true)
+    temp_csv  = make_csv(logs,day)
+    if alt_csv != :only
+      begin
+        temp_xlsx   = make_book_from_csv(xl,temp_csv)
+        dest_name1  = file_name(day,dir: :mydoc,file: :excel)
+        dest_name2  = file_name(day,dir: :excel,file: :excel)
+        res         = save_file(temp_xlsx,dest_name1,dest_name2,overwrite: overwrite)
+        p "A Excel file of date:#{day} was saved."
+        return res
+      rescue =>e
+        if alt_csv == true
+          dest_name1 = file_name(day,dir: :mydoc,file: :csv)
+          dest_name2 = file_name(day,dir: :excel,file: :csv)
+          res        = save_file(temp_csv,dest_name1,dest_name2,overwrite: overwrite)
+          p "A CSV file of date:#{day} was saved."
+          return res
+        else
+          mess = "エラー! \n#{e.message.force_encoding('Windows-31J')}+(#{Time.parse(day).strftime('%Y-%m-%d')})"
+          return [:err,mess,temp_csv]
+        end
+      end      
+    else  # alt_csv==:only のとき
+      dest_name1 = file_name(day,dir: :mydoc,file: :csv)        
+      dest_name2 = file_name(day,dir: :excel,file: :csv)
+      res        = save_file(temp_csv,dest_name1,dest_name2,overwrite: overwrite)
       p "A CSV file of date:#{day} was saved."
+      return res
     end
   end
-end
-def start_excel()
-  xl = WIN32OLE.new('Excel.Application')
-  xl.Application.DisplayAlerts = "False"
-  WIN32OLE.const_load(xl, Excel) unless defined? Excel::XlAll
-  xl
-end
-def stop_excel(xl)
-  xl.Application.DisplayAlerts = "True"
-  xl.Quit
+  def self.start_excel()
+    xl = WIN32OLE.new('Excel.Application')
+    xl.Application.DisplayAlerts = "False"
+    WIN32OLE.const_load(xl, Excel) unless defined? Excel::XlAll
+    xl
+  end
+  def self.stop_excel(xl)
+    xl.Application.DisplayAlerts = "True"
+    xl.Quit
+  end
 end

@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.354 (2018.10.3)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.355 (2018.11.21)           #
 #                                                                                #
 #                       過去ログの分析編                                         #
 #                                                                                #
@@ -22,8 +22,9 @@ class Kakolog
   end
   def setup(days)
     days.each do |day|
-      if day.log_file
-        @logs[day]        = RaichoList.setup(day.log_file,$mado_array,day)
+      log_file=day.log_file
+      if log_file
+        @logs[day]        = RaichoList.setup(log_file,$mado_array,day)
       else
         @logs[day]        = nil
       end
@@ -421,21 +422,48 @@ if ARGV[0] and ( ARGV[0]=="all" or ARGV[0].match(/^\d{8}$/) )
 
   #下位互換のためのコード(ここから)
   module Excel;end
-  def make_xlsx(xl,logs,day=Today)
-    #CSVファイルを作成・保存
-    str    = "#{day[0,4]}年#{day.day_to_jan}の窓口状況\n\n"
-    $mado_array.each do |mado|
-      str << "#{mado}番窓口: 来庁者数 #{logs[mado].sya_su.to_s}、 平均待ち時間 #{logs[mado].average_machi_hun.to_s} 分\n"
-    end
-    str   << "\n"
-    str   << "窓口,番号,発券時待ち人数,発券時刻→呼出時刻,待ち時間\n"
-    str   << make_csv_data(logs)
-    temp   = Myfile.dir(:temp)+"/temp.csv"
-    #CSVファイルをエクセルで読込んで整形する。
-    begin
+  #excelファイル生成メソッド（戻り値：保存したファイル名又はエラーメッセージ）
+  #引数 alt_csv: :ture =>excelファイル生成で例外が発生したときcsvファイルを保存する.
+  #              :only =>excelファイルではなくcsvファイルを保存する.
+  #              その他=>excelファイル生成で例外が発生したときはシステムのエラーメッセージを返す.
+  module MakeExcel
+    def self.file_name(day=Today,dir: :temp,file: :excel)
+      if dir == :temp
+        if    file == :csv
+          res = "#{Myfile.dir(:temp)}/temp.csv"
+        elsif file == :excel
+          res = "#{Myfile.dir(:temp)}/temp.xlsx"
+        end
+      else
+        base = "窓口待ち状況(#{Time.parse(day).strftime('%Y-%m-%d')})"
+        if    dir == :mydoc and file == :csv
+          res = "#{MYDOC}/#{base}.csv"
+        elsif dir == :mydoc and file == :excel
+          res = "#{MYDOC}/#{base}.xlsx"
+        elsif dir == :excel and file == :csv
+          res = "#{Myfile.dir(:excel)}/#{base}.csv"
+        elsif dir == :excel and file == :excel
+          res = "#{Myfile.dir(:excel)}/#{base}.xlsx"
+        end
+      end
+      res.gsub('/','\\')
+  	end
+    #CSVファイルを生成、一時保存用フォルダに保存
+    def self.make_csv(logs,day)
+      str    = "#{day[0,4]}年#{day.day_to_jan}の窓口状況\n\n"
+      $mado_array.each do |mado|
+        str << "#{mado}番窓口: 来庁者数 #{logs[mado].sya_su.to_s}、 平均待ち時間 #{logs[mado].average_machi_hun.to_s} 分\n"
+      end
+      str   << "\n"
+      str   << "窓口,番号,発券時待ち人数,発券時刻→呼出時刻,待ち時間\n"
+      str   << make_csv_data(logs)
+      temp  = file_name(dir: :temp,file: :csv)
       File.write(temp,str)
-      book     = xl.Workbooks.Open(temp)
-    
+      return temp
+    end
+    #CSVファイルをエクセルで読込んで整形し、一時保存用フォルダに保存
+    def self.make_book_from_csv(xl,csv_file)
+      book     = xl.Workbooks.Open(csv_file)    
       my_table = book.ActiveSheet.Range("B8").CurrentRegion
       #列幅
       [10,10,16,20,10].each_with_index do |width,i|
@@ -459,40 +487,73 @@ if ARGV[0] and ( ARGV[0]=="all" or ARGV[0].match(/^\d{8}$/) )
       end
       #印刷時のタイトル行
       book.ActiveSheet.PageSetup.PrintTitleRows = "$1:$1"
-
       #エクセルファイルとして保存する。
-      book_name="#{MYDOC}/窓口待ち状況(#{Time.parse(day).strftime('%Y-%m-%d')}).xlsx".gsub('/','\\')
-      book.SaveAs("Filename"=>book_name,"FileFormat"=>51, "CreateBackup"=>"False")
+      temp = file_name(dir: :temp,file: :excel)
+      book.SaveAs("Filename"=>temp,"FileFormat"=>51, "CreateBackup"=>"False")
       book.Close("False")
-      #共有フォルダにコピーする。
-      if Myfile.dir(:excel)
-        FileUtils.cp_r(book_name,Myfile.dir(:excel),{:preserve => true})
-        p "A Excel file of date:#{day} was saved."
+      return temp
+    end
+    #一時保存用フォルダのファイルを名前をつけてマイドキュメントと共有フォルダに保存
+    def self.save_file(src_name,dest_name1,dest_name2,overwrite: true)
+      FileUtils.cp_r(src_name,dest_name1,{:preserve => true})
+      if Myfile.dir(:excel) and Dir.exist? Myfile.dir(:excel)
+        if overwrite==true or not File.exist?(dest_name2)
+          FileUtils.cp_r(src_name,dest_name2,{:preserve => true})
+          res = [:ok,dest_name2]
+        elsif File.exist?(dest_name2)
+          res = [:ok,dest_name1,dest_name2]
+        else
+          res = [:ok,dest_name1]              
+        end
+      else
+        res = [:ok,dest_name1]
       end
-      return
-    rescue =>e
-      #popup e.message.force_encoding("Windows-31J") + "\n\n#{temp}"
-      #原因不明であるが、環境によってはOLEオートメーションのアクセスを拒否される場合がある。
-      #その場合の代替処理として、同じ内容のcsvファイルを保存する。
-      csv_name="#{Myfile.dir(:excel)}/窓口待ち状況(#{Time.parse(day).strftime('%Y-%m-%d')}).csv"
-      if Myfile.dir(:excel)
-        FileUtils.cp_r(temp,csv_name)
+      return res
+    end
+    def self.make_xlsx(xl,logs,day=Today,alt_csv: true,overwrite: true)
+      temp_csv  = make_csv(logs,day)
+      if alt_csv != :only
+        begin
+          temp_xlsx   = make_book_from_csv(xl,temp_csv)
+          dest_name1  = file_name(day,dir: :mydoc,file: :excel)
+          dest_name2  = file_name(day,dir: :excel,file: :excel)
+          res         = save_file(temp_xlsx,dest_name1,dest_name2,overwrite: overwrite)
+          p "A Excel file of date:#{day} was saved."
+          return res
+        rescue =>e
+          if alt_csv == true
+            dest_name1 = file_name(day,dir: :mydoc,file: :csv)
+            dest_name2 = file_name(day,dir: :excel,file: :csv)
+            res        = save_file(temp_csv,dest_name1,dest_name2,overwrite: overwrite)
+            p "A CSV file of date:#{day} was saved."
+            return res
+          else
+            mess = "エラー! \n#{e.message.force_encoding('Windows-31J')}+(#{Time.parse(day).strftime('%Y-%m-%d')})"
+            return [:err,mess,temp_csv]
+          end
+        end      
+      else  # alt_csv==:only のとき
+        dest_name1 = file_name(day,dir: :mydoc,file: :csv)        
+        dest_name2 = file_name(day,dir: :excel,file: :csv)
+        res        = save_file(temp_csv,dest_name1,dest_name2,overwrite: overwrite)
         p "A CSV file of date:#{day} was saved."
+        return res
       end
     end
-  end
-  def start_excel()
-    xl = WIN32OLE.new('Excel.Application')
-    xl.Application.DisplayAlerts = "False"
-    WIN32OLE.const_load(xl, Excel) unless defined? Excel::XlAll
-    xl
-  end
-  def stop_excel(xl)
-    xl.Application.DisplayAlerts = "True"
-    xl.Quit
+    def self.start_excel()
+      xl = WIN32OLE.new('Excel.Application')
+      xl.Application.DisplayAlerts = "False"
+      WIN32OLE.const_load(xl, Excel) unless defined? Excel::XlAll
+      xl
+    end
+    def self.stop_excel(xl)
+      xl.Application.DisplayAlerts = "True"
+      xl.Quit
+    end
   end
   #下位互換のためのコード（ここまで）
 
+  #指定日を含む週から今日までの週ごとの推移のページの生成
   def make_suii_html(start_day)
     #週別推移のファイルをtempフォルダに作成し、共有フォルダに複写する。
     files=make_suii_during_optional_period(start_day)
@@ -503,36 +564,112 @@ if ARGV[0] and ( ARGV[0]=="all" or ARGV[0].match(/^\d{8}$/) )
     FileUtils.cp(index,to)
     #popup Myfile.dir(:suii) + " に保存しました。"
   end
-  if ARGV[0] == "all"
-    days      = Dir.glob(Myfile.dir(:kako_log)+"/*.log").select{|l| l=~/\d{8}\.log/}.map{|l| l.match(/\d{8}/)[0]}
-    start_day = days.min
-  else
-    start_day = ARGV[0]
-    days      = (start_day..Today).to_a
+  def get_days(start_day)
+    def calendar_days(start_day)
+      day       = start_day
+      days      = []
+      while day <= Today
+        days << day
+        day  =  day+1
+      end
+      days
+    end
+    def having_log_days()
+      Dir.glob(Myfile.dir(:kako_log)+"/*.log").
+                   select{|l| l=~/\d{8}\.log/}.
+                   map{|l| l.match(/\d{8}/)[0]}
+    end
+    if start_day != "all" and start_day > Today
+      popup("今日以前の日付を指定してください。",48,"日付が不正です.")
+      exit
+    end
+    if start_day == "all"
+      return having_log_days()
+    else
+      return calendar_days(start_day) & having_log_days()
+    end
   end
+
+  #ここから実行部分
+
+  #***** 第２引数に"repair_log"が入っている場合の処理 *****
+  days = get_days(ARGV[0])
+
   if ARGV[1] and ARGV[1].match(/repair_log/)
-begin
-    LogBack.repair(days)
-rescue
-    #下位互換のためのコード
-    Kakolog.repair(days)
-end
+    begin
+      LogBack.repair(days)
+    rescue
+      #下位互換のためのコード
+      Kakolog.repair(days)
+    end
   end
+
+  #***** 第２引数が未指定、または第２引数に"make_suii"が入っている場合の処理 *****
   if ARGV[1]==nil or ARGV[1].match(/make_suii/)
-    make_suii_html(start_day)
+    make_suii_html(days.min)
   end
-  if ARGV[1] and ARGV[1].match(/make_excel/) and Myfile.dir(:excel)
+
+  #***** 第２引数に"make_excel"が入っている場合の処理 *****
+  if ARGV[1] and ARGV[1].match(/make_excel/)
     TimeNow = "23:00"
-    xl=start_excel()
+    xl = MakeExcel.start_excel()
+    saved   = []
+    existed = []
+    err     = []
     days.each do |day|
-      xlsx    = Myfile.dir(:excel)+"/"+day+".xlsx"
-      csv     = Myfile.dir(:excel)+"/"+day+".csv"
-      if day.log_file and not File.exist?(xlsx) and not File.exist?(csv)
-        logs=RaichoList.setup(day.log_file,$mado_array,day)
-        make_xlsx(xl,logs,day)
+      log_file = day.log_file
+      temp     = MakeExcel.file_name(day,dir: :temp, file: :csv)
+      xlsx     = MakeExcel.file_name(day,dir: :excel,file: :excel)
+      csv1     = MakeExcel.file_name(day,dir: :mydoc,file: :csv)      
+      csv2     = MakeExcel.file_name(day,dir: :excel,file: :csv)
+      logs=RaichoList.setup(log_file,$mado_array,day)
+      #xlsxを生成し、マイドキュメントに保存する。
+      #共有フォルダに同名ファイルがないときは共有フォルダにも保存する.
+      res = MakeExcel.make_xlsx(xl,logs,day,alt_csv: false,overwrite: false)
+      if res[0]==:ok
+      #xlsxを少なくともマイドキュメントに保存できたときは:okが戻る.
+        saved   << res[1]
+        existed << res[2] unless res[2]==[]
+      else
+      #xlsxが保存できなかったときはcsvファイルをマイドキュメントに保存する。
+      #共有フォルダに同名ファイルがないときは共有フォルダにも保存する.
+        err     << res[1]
+        res = MakeExcel.save_file(temp,csv1,csv2,overwrite: false)
+        saved   << res[1]
+        existed << res[2] unless res[2]==[]
       end
     end
-    stop_excel(xl)
+    MakeExcel.stop_excel(xl)
+    #結果の表示
+    mydoc  = MYDOC.gsub('/','\\')
+    xldir = Myfile.dir(:excel).gsub('/','\\')
+    saved_at_mydoc     = saved.select{|f| File.dirname(f)==mydoc}
+    saved_at_mydoc_str = "#{mydoc}に、次のファイルを保存しました。\n"+
+                         saved_at_mydoc.map{|f| f and File.basename(f)}.
+                         join("\n") unless saved_at_mydoc==[]
+
+    saved_at_excel     = saved.select{|f| File.dirname(f)==xldir}
+    saved_at_excel_str = "#{xldir}に、次のファイルを保存しました。\n"+
+                         saved_at_excel.map{|f| f and File.basename(f)}.
+                         join("\n") unless saved_at_excel==[]
+
+    existed_at_mydoc     = existed.select{|f| f and File.dirname(f)==mydoc}
+    existed_at_mydoc_str = "#{mydoc}には、すでに次のファイルが存在していました。\n"+
+                           existed_at_mydoc.map{|f| File.basename(f)}.
+                           join("\n") unless existed_at_mydoc==[]
+
+    existed_at_excel     = existed.select{|f| f and File.dirname(f)==xldir}
+    existed_at_excel_str = "#{xldir}には、すでに次のファイルが存在していました。\n"+
+                           existed_at_excel.map{|f| File.basename(f)}.
+                           join("\n") unless existed_at_excel==[]
+
+    mes_arry = []
+    mes_arry << existed_at_excel_str if existed_at_excel
+    #mes_arry << existed_at_mydoc_str if existed_at_mydoc
+    mes_arry << saved_at_excel_str   if saved_at_excel
+    #mes_arry << saved_at_mydoc_str   if saved_at_mydoc
+    mes = mes_arry.join("\n\n")
+    popup mes
   end
   popup "終了しました。"
 end

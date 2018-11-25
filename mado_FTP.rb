@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.352 (2017.9.5)             #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.355 (2018.11.21)           #
 #                                                                                #
 #          HTLM生成、FTP送信編                                                   #
 #                                                                                #
@@ -255,42 +255,44 @@ def 業務終了処理
 
   #logデータを過去ログフォルダに移す。
   LogBack.log_data_backup if $test_mode!=7
-
+p :log_backuped
   #logデータの修復.前日等他の日のデータが混在するときそれぞれの日付ファイルに振り分ける。
   #（念のため今日だけでなく7日前からのログを点検する.）
   repaired_days=LogBack.repair(Today-7..Today)
-
+p :logfile_repaired
   #***** 推移のhtml *****
   require './suii'
 
   #内部モニタ用ページ(内部モニタ用⇒公開用の順序を崩さないこと)
   make_suii_for_monitor if Myfile.dir(:suii)
+p :renew_monitor_display
   #公開用ページ
   if defined? $suii_open and $suii_open==:yes
     files=make_html_of_week(Today)
     ftp_soshin(files,Myfile.dir(:ftp))
   end
-
+p :renew_suii_page
   #概況データ保存
   gaikyo_data_save($logs)
-
+p :gaikyo_file_saved
   #エクセルで今日の待ち時間一覧表を作成
-  xl=start_excel()
-  make_xlsx(xl,$logs) if Myfile.dir(:excel)
-  stop_excel(xl)
+  xl=MakeExcel.start_excel()
+  res=MakeExcel.make_xlsx(xl,$logs) #DocumentフォルダとMyfile.dir(:excel)の設定があるときはMyfile.dir(:excel)に保存する.
+  MakeExcel.stop_excel(xl)
+  popup(res,48,"Excelファイル保存失敗",10) if res[0]==:err
   #ログを修復したとき欠落したエクセルファイルを補う。
   if Myfile.dir(:excel) and repaired_days.size>0
-    xl=start_excel()
+    xl=MakeExcel.start_excel()
     repaired_days.each do |day|
       file= Myfile.dir(:excel)+"/窓口待ち状況(#{Time.parse(day).strftime('%Y-%m-%d')})"
       if not File.exist?(file+".xlsx") and not File.exist?(file+".csv")
         logs=RaichoList.setup(day.log_file,$mado_array,day)
-        make_xlsx(xl,logs,day)
+        MakeExcel.make_xlsx(xl,logs,day)
       end
     end
-    stop_excel(xl)
+    MakeExcel.stop_excel(xl)
   end
-
+p :excel_file_saved
   puts "業務終了処理完了！"
 
   #システムシャットダウン
