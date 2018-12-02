@@ -1,8 +1,8 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.355 (2018.11.21)           #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.356 (2018.12.2)                   #
 #                                                                                #
-#        <<オブジェクト定義、ユーティリティメソッド及びオプション機能>>          #
+#        <<オブジェクト定義、ユーティリティメソッド及びオプション機能>>                    #
 #                                                                                #
 #                        作成    犬塚  克 ( ka00-inuzuka@city.yokohama.jp )      #
 #                        著作権  横浜市                                          #
@@ -349,7 +349,7 @@ end
 #***** FTP送信 （2014.4.4 mado_Ftp.rbから移記）*****
 def ftp_soshin(files,dir)
   case $test_mode
-  when 0,2,7  #本番またはテストモード２、７のとき、FTP送信する。
+  when 0,2,7,9  #本番またはテストモード2,7,9のとき、FTP送信する。
     cnt_retry=0
     begin
       ftp = Net::FTP.new
@@ -755,9 +755,9 @@ class Time
   def to_yymmdd
     self.strftime("%Y%m%d")
   end
-  #$test_mode=2,3,4,5の場合の現在時
+  #$test_mode=2,3,4,5,9の場合の現在時
   class << Time; alias real_now now; end
-  @@jisa ||= Time.real_now - parse($datetime) if $datetime and test_mode?(2,3,4,5)
+  @@jisa ||= Time.real_now - parse($datetime) if $datetime and test_mode?(2,3,4,5,9)
   def self.now
     return real_now - @@jisa if defined? @@jisa
     real_now
@@ -1846,7 +1846,7 @@ class RaichoList
   end
   #*** 最新のデータ更新時刻（全窓口） ***
   def self.last_update_time
-    time=[]
+    time=["00:00"]             #2018.12.2 ログデータがカラの場合に"nil"ではなく"00:00"が戻り値になるように初期値を設定
     RaichoList.each do |list|
       t = list.last_update_time
       time << t unless t==nil  #2015.2.20 条件を付加
@@ -2331,7 +2331,11 @@ class LogBack
     end
     f=new.split("\n").select{|l| l.size.between?(20,23)}.uniq.sort.join("\n")+"\n"  # 2018.3.21
     File.write(todays_file,f)
-    if option==:and_erase and test_mode? == false and File.exist?(newest)
+    if Myfile.dir(:log_backup)
+      FileUtils.cp_r(todays_file, Myfile.dir(:log_backup), {:preserve => true})
+    end
+    #本番又はテストモード9のときは、過去ログにデータを移した後、明日に備えてProlog.csvをカラにする。
+    if option==:and_erase and test_mode?(0,9) == true and File.exist?(todays_file)
       File.write(Myfile.file(:log) , "")
     end
   end
@@ -2371,7 +2375,7 @@ module Excel;end
 #              :only =>excelファイルではなくcsvファイルを保存する.
 #              その他=>excelファイル生成で例外が発生したときはシステムのエラーメッセージを返す.
 module MakeExcel
-	def self.file_name(day=Today,dir: :temp,file: :excel)
+  def self.file_name(day=Today,dir: :temp,file: :excel)
     if dir == :temp
       if    file == :csv
         res = "#{Myfile.dir(:temp)}/temp.csv"
@@ -2391,7 +2395,7 @@ module MakeExcel
       end
     end
     res.gsub('/','\\')
-	end
+  end
   #CSVファイルを生成、一時保存用フォルダに保存
   def self.make_csv(logs,day)
     str    = "#{day[0,4]}年#{day.day_to_jan}の窓口状況\n\n"
