@@ -296,14 +296,6 @@ END{
   end
 }
 
-#***** è“®‘€ì‚É‚æ‚é‹Æ–±I—¹ˆ—‚©‚Ç‚¤‚©‚Ì”»’è *****
-def manually_operated_ending_process()
-  if ARGV[0]=="EndingProcess"
-    true
-  else
-    false
-  end
-end
 
 #***** ƒ[ƒ‹ *****
 def send_mail(title,body)

@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.355 (2018.11.21)           #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.356 (2018.12.15)           #
 #                                                                                #
 #                       過去ログの分析編                                         #
 #                                                                                #
@@ -53,7 +53,7 @@ class Kakolog
   def self.kako_log_of(day)
     "#{Myfile.dir(:kako_log)}/#{day}.log"
   end
- #過去ログファイルに含まれる{日付=>ログデータ}
+  #過去ログファイルに含まれる{日付=>ログデータ}
   def self.lines_of(file)
     if File.exist? file
       h    = Hash.new
@@ -227,7 +227,9 @@ def make_html_of_week(day,use=:public)
       f=make_link(f,day)                     #前後の週のHTMLへのリンク等を作成する。
     end
     fname = Myfile.file_name(kubun)
-    fname = fname.sub('.html',"(#{day.previous_monday}).html") unless day.this_week?
+    if use==:local and day.this_week? == false
+      fname = fname.sub('.html',"(#{day.previous_monday}).html")
+    end
     temp_file = Myfile.dir(:temp)+"/"+fname
     File.write(temp_file,f)
     files << temp_file
@@ -278,9 +280,9 @@ def make_html_of_3_weeks(day)
   files
 end
 
-def make_suii_for_monitor
+def make_suii_for_monitor(day=Today)
   #3週間分のページをtempフォルダに作成し共有フォルダに複写する。
-  files=make_html_of_3_weeks(Today)
+  files=make_html_of_3_weeks(day)
   to=Myfile.dir(:suii)
   FileUtils.cp(files.flatten,to)
   #インデックスページを更新する。共有フォルダにファイル名を変更して複写。

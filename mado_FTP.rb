@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.355 (2018.11.21)           #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.356 (2018.12.15)           #
 #                                                                                #
 #          HTLM生成、FTP送信編                                                   #
 #                                                                                #
@@ -20,12 +20,19 @@ require "./ObjectInitialize.rb" unless String.const_defined? :Today
 
 #***** 状況判定 *****
 def situation
-  return :before_open if $ku.kaicho > TimeNow
   $syuryo_hun||=5
-  if $ku.heicho < TimeNow
+  # "upload_suii"のオプション付きで"mado_FTP.rb"を起動したときは、
+  # 現在時刻によらず今週/先週の推移を生成し、アップロードする.
+  if ARGV[0]=="UploadSuii"
+    return :upload_suii
+  elsif TimeNow < $ku.kaicho
+    return :before_open
+  elsif TimeNow < $ku.heicho and ARGV[0]=="EndingProcess"
+    return :opening_hours
+  elsif $ku.heicho < TimeNow
     if File.exist?("#{MYDOC}/#{$logfolder}/#{Today}.log") and test_mode? == false
       return :ended
-    elsif manually_operated_ending_process()
+    elsif ARGV[0]=="EndingProcess"
       return :ending
     elsif ( $ku.heicho + $syuryo_hun.minute < TimeNow and
             RaichoList.machi_su==0 and
@@ -296,14 +303,53 @@ p :excel_file_saved
   puts "業務終了処理完了！"
 
   #システムシャットダウン
-  if manually_operated_ending_process()
+  if ARGV[0]=="EndingProcess"
     mess="業務終了処理が完了しました。シャットダウンします。"
-    VcallMonitor.new.shutdown_pc(mess,0) if $test_mode!=7
+    VcallMonitor.new.shutdown_pc(mess,3) if $test_mode!=7
   else
     mess="業務終了処理が完了しました。５分後にシャットダウンします。"
     VcallMonitor.new.shutdown_pc(mess,5.minute) if $test_mode!=7
   end
   exit
+end
+
+#***** 今週/先週の推移ページ更新処理 *****
+def 推移更新処理
+  require './suii_test'
+  def log_exist?(days)
+    days.each do |day|
+      return true if day.log_file
+    end
+    nil
+  end
+  #Prolog.csvに昨日までのデータが残っている可能性があるのでまず過去ログを生成する。
+  LogBack.log_data_backup(:not_erase)
+  repaired_days=LogBack.repair(Today-14..Today)
+  #閉庁時間前である場合は、今日の過去ログは余分なので削除する。
+  log=Today.log_file
+  if log and TimeNow < $ku.heicho
+    FileUtils.rm(log)
+  end
+  #今週の過去ログファイルが存在しないときは、Todayを先週に変更する。
+  #過去ログのある週に到達するまで遡る。
+  tday=Today
+  until log_exist?(tday.days_of_week) do
+    tday=tday-7
+  end
+  #内部モニタ用ページを生成、保存する。
+  make_suii_for_monitor(tday) if Myfile.dir(:suii)
+  #公開用イメージを生成、FTP送信する。
+  if defined? $suii_open and $suii_open==:yes
+    files=make_html_of_week(tday)
+    ftp_soshin(files,Myfile.dir(:ftp))
+  end
+end
+
+#***** 手動終了処理の中止処理 *****
+def 業務終了処理中止
+  popup("開業時間中は業務終了処理は実行できません。",48,"業務終了処理中止",3)
+  通常処理
+  ARGV[0]=nil
 end
 
 #**********************************************#
@@ -323,14 +369,16 @@ case situation
   when :regular               ; 通常処理
   when :before_open           ; 開庁前処理
   when :ending                ; 業務終了処理
-  when :ended
+  when :upload_suii           ; 推移更新処理
+  when :opening_hours         ; 業務終了処理中止
+  when :ended            
     puts "業務終了処理済み！"
     #*** 業務終了処理済みですでにログファイルが空であるのにマニュアル操作で業務終了処理が指示されたときは
     #*** 操作の意図を優先し、ログファイルを書き戻してもう一度業務終了処理を行う.
-    if manually_operated_ending_process()
-      log_file=Myfile.dir(:kako_log)+"/"+Today+".log"
-      if File.exist? log_file
-        FileUtils.cp(log_file, Myfile.file(:log), {:preserve => true})
+    if ARGV[0]=="EndingProcess"
+      kako_log=Today.log_file
+      if File.exist? kako_log
+        FileUtils.cp(kako_log, Myfile.file(:log), {:preserve => true})
         業務終了処理
       end
     end
