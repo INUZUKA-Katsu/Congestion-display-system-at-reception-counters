@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.356 (2018.12.2)                   #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.356 (2018.12.10)                   #
 #                                                                                #
 #        <<オブジェクト定義、ユーティリティメソッド及びオプション機能>>                    #
 #                                                                                #
@@ -427,11 +427,13 @@ end
 #***** テストモードの判定 *****
 # 例:$test_mode=0のとき、test_mode?=>false,test_mode?(0)=>true
 #    $test_mode=3のとき、test_mode?(2,3,4)=>true
+#    $test_mode=9のとき、test_mode?=>false,test_mode?(9)=>true 2018.12.2
+#    (テストモード9は日時以外をすべて本番モードと同一に扱うためtest_mode?の戻り値をfalseとする.)
 def test_mode?(*nums)
   if defined?($test_mode)==false
     false
   elsif nums==[]
-    if $test_mode==0
+    if $test_mode==0 or $test_mode==9  #2018.12.2 2つめの条件を付加.
       false
     else
       true
@@ -1846,7 +1848,7 @@ class RaichoList
   end
   #*** 最新のデータ更新時刻（全窓口） ***
   def self.last_update_time
-    time=["00:00"]             #2018.12.2 ログデータがカラの場合に"nil"ではなく"00:00"が戻り値になるように初期値を設定
+    time=["00:00"] #2018.12.2 ログデータがカラの場合に"nil"ではなく"00:00"が戻り値になるように初期値を設定
     RaichoList.each do |list|
       t = list.last_update_time
       time << t unless t==nil  #2015.2.20 条件を付加
@@ -2489,12 +2491,17 @@ module MakeExcel
     end
   end
   def self.start_excel()
-    xl = WIN32OLE.new('Excel.Application')
-    xl.Application.DisplayAlerts = "False"
-    WIN32OLE.const_load(xl, Excel) unless defined? Excel::XlAll
-    xl
+    begin
+      xl = WIN32OLE.new('Excel.Application')
+      xl.Application.DisplayAlerts = "False"
+      WIN32OLE.const_load(xl, Excel) unless defined? Excel::XlAll
+      return xl
+    rescue
+      return nil                                     # 2018.12.10 Excel がインストールされていない場合のエラー処理を付加
+    end
   end
   def self.stop_excel(xl)
+    return if xl==nil                               # 2018.12.10 Excel がインストールされていない場合の処理を付加
     xl.Application.DisplayAlerts = "True"
     xl.Quit
   end

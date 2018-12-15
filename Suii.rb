@@ -541,12 +541,17 @@ if ARGV[0] and ( ARGV[0]=="all" or ARGV[0].match(/^\d{8}$/) )
       end
     end
     def self.start_excel()
-      xl = WIN32OLE.new('Excel.Application')
-      xl.Application.DisplayAlerts = "False"
-      WIN32OLE.const_load(xl, Excel) unless defined? Excel::XlAll
-      xl
+      begin
+        xl = WIN32OLE.new('Excel.Application')
+        xl.Application.DisplayAlerts = "False"
+        WIN32OLE.const_load(xl, Excel) unless defined? Excel::XlAll
+        return xl
+      rescue
+        return nil
+      end
     end
     def self.stop_excel(xl)
+      return if xl==nil
       xl.Application.DisplayAlerts = "True"
       xl.Quit
     end
