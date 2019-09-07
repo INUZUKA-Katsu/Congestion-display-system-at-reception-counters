@@ -792,6 +792,24 @@ class NilClass
 end
 
 
+class File
+  def self.read_to_sjis(file)
+    f=self.read(file)
+    if not f.valid_encoding? and f.force_encoding("utf-8").valid_encoding?
+      f.encode!("Windows-31J","utf-8")
+    end
+    f
+  end
+  def self.write_acording_to_htmlmeta(file,txt)
+    if txt.match(/charset=.?(UTF|utf)-8/)
+      txt.encode!("utf-8","Windows-31J",:undef=>:replace,:replace=>"",:universal_newline => true)
+      txt.force_encoding("utf-8")
+    end
+    self.write(file,txt)
+  end
+end
+
+
 #以下は、独自のオブジェクトクラス定義
 class VcallMonitor
   attr_reader :login_time, :monitor_started

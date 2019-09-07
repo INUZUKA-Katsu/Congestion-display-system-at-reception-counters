@@ -210,7 +210,7 @@ def make_html_of_week(day,use=:public)
   kubuns=Myfile.keys_of_suii
   kubuns=kubuns.reject{|key| key.to_s=~/sya_?su/} if use==:public
   kubuns.each do |kubun|
-    f=File.read(Myfile.hinagata(kubun))
+    f=File.read_to_sjis(Myfile.hinagata(kubun))
     #インターネットから分離された課内モニター用に外部サイトへのリンクを置換え
     $src_replace.each{|k,v| f.gsub!(k,v)} if $src_replace and use==:local
     #表頭
@@ -231,7 +231,7 @@ def make_html_of_week(day,use=:public)
       fname = fname.sub('.html',"(#{day.previous_monday}).html")
     end
     temp_file = Myfile.dir(:temp)+"/"+fname
-    File.write(temp_file,f)
+    File.write_acording_to_htmlmeta(temp_file,f)
     files << temp_file
   end
   files
@@ -302,9 +302,9 @@ def modify_html_of_week()
       return nil unless File.exist?(file)
       return nil if File.mtime(file).to_yymmdd.this_week?
     end
-    f=File.read(file)
+    f=File.read_to_sjis(file)
     f.gsub!(/今週の/,"先週の")
-    File.write(file,f)
+    File.write_acording_to_htmlmeta(file,f)
     files << file
   end
   files

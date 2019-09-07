@@ -203,7 +203,7 @@ def make_html()
   temp_dir=Myfile.dir(:temp)
   files=Array.new
   [:pc,:keitai,:sumaho].each do |h|
-    f=File.read(Myfile.hinagata(h))
+    f=File.read_to_sjis(Myfile.hinagata(h))
     f.sub!(/<!--madoguchiTopics-->/)      {|str| topic} if topic
     f.sub!(/<!--TIME-->/)                 {|str| genzai}
     $mado_array.each do |mado|
@@ -221,7 +221,7 @@ def make_html()
         f.sub!(/<!--#{mado}-SANKO-->/)      {|str| ""}
       end
     end
-    File.write(Myfile.dir(:temp)+"/"+Myfile.file_name(h),f)
+    File.write_acording_to_htmlmeta(Myfile.dir(:temp)+"/"+Myfile.file_name(h),f)
     files << Myfile.dir(:temp)+"/"+Myfile.file_name(h)
   end
   files
