@@ -522,10 +522,10 @@ class String
   #*** "hh:mm"形式の文字列のまま時間計算ができるようにする。
   alias_method :string_add,:+
   def +(second)
-    if second.class==Fixnum and self.match(/\d\d?:\d\d/)
+    if second.is_a? Integer and self.match(/\d\d?:\d\d/)
       t=Time.parse(self)+second
       t.strftime("%H:%M")
-    elsif second.is_a? Fixnum and self.match(/\d{8}/)  #日付の加算 2014.3.31付加
+    elsif second.is_a? Integer and self.match(/\d{8}/)  #日付の加算 2014.3.31付加
       t=Date.parse(self)+second
       t.strftime("%Y%m%d")
     else
@@ -534,17 +534,17 @@ class String
   end
   def -(second)
     if self.match(/\d\d:\d\d/)
-      if second.class==Fixnum
+      if second.is_a? Integer
         t=Time.parse(self)-second
         t.strftime("%H:%M")
-      elsif second.class==String and second.match(/\d\d:\d\d/)
+      elsif second.is_a? String and second.match(/\d\d:\d\d/)
         t=Time.parse(self)-Time.parse(second)
         (t/60).to_i
       elsif second==nil
         0
       end
     elsif self.match(/^\d{8}$/) #日付の引き算 2014.3.31付加
-      if  second.is_a? Fixnum
+      if  second.is_a? Integer
         t=Date.parse(self)-second
         t.strftime("%Y%m%d")
       elsif second.is_a? String and second.match(/^\d{8}$/)
@@ -721,7 +721,7 @@ class Numeric
 end
 
 
-class Fixnum
+class Integer
   def to_hhmm
     "%02d:00" %self
   end
@@ -776,7 +776,7 @@ class NilClass
     define_method(name) do |arg|
       if arg.class==String and arg.match(/\d\d:\d\d/)
         nil
-      elsif arg.class==Fixnum
+      elsif arg.is_a? Integer
         nil
       else
         raise NoMethodError,"\"nil #{name} #{arg}\"は無効です。\n",caller
@@ -1749,7 +1749,7 @@ class RaichoList
     when String ; time = time_or_id
       hakken_id    = hakken_sya_just_before(time).id
       yobidashi_id = yobidashi_sya_just_before(time).id
-    when Fixnum ; id   = time_or_id
+    when Integer ; id   = time_or_id
     #特定の来庁者に着目した待ち人数の考え方
     #当該来庁者に発券した結果として、発券機の待ち人数の表示がx人になったとき
     #原則として当該来庁者にとっての待ち人数もx人とする。自分自身を待ち人数に
