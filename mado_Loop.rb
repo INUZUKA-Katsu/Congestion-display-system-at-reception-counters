@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #--------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.2.8 (2014.8.15)            #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.5 (2019.9.7)            #
 #                                                                                #
 #                        mado_FTP.rb の繰り返し実行編                            #
 #                                                                                #
@@ -30,5 +30,6 @@ require "./Objectinitialize.rb"
 interval_second=60
 loop do
   load "./mado_FTP.rb"
+  Time.loop_count
   sleep interval_second
 end
