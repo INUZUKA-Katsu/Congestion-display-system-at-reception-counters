@@ -751,10 +751,23 @@ class Time
   end
   #$test_mode=2,3,4,5,9‚Ìê‡‚ÌŒ»İ
   class << Time; alias real_now now; end
-  @@jisa ||= Time.real_now - parse($datetime) if $datetime and test_mode?(2,3,4,5,9)
+  @@count||= 0
+  @@setted_time_for_test||=parse($datetime)
+  @@jisa ||= Time.real_now - @@setted_time_for_test
   def self.now
-    return real_now - @@jisa if defined? @@jisa
+    if $datetime and test_mode?(2,3,4,5,9)
+      if $advance_minutes_by_step and $advance_minutes_by_step>0
+        add = $advance_minutes_by_step.minute * @@count
+        return @@setted_time_for_test + add 
+      else
+        return real_now - @@jisa
+      end
+    end
     real_now
+  end
+  def self.loop_count
+    return @@count+=1 if test_mode?(2,3,4,5,9)
+    0
   end
 end
 
