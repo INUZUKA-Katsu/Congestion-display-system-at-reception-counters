@@ -1207,7 +1207,7 @@ class KenBango
     @max  = max
   end
   def self.parse(ken_bango)
-      ary = ken_bango.split("Å`")
+      ary = ken_bango.split(/Å`|Å`/)
       mini=ary[0].to_i
       max =ary[1].to_i
       self.new(mini,max)
