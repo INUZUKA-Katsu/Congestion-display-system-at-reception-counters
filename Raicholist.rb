@@ -841,7 +841,9 @@ class VcallMonitor
         @login_time = $&
         true
       else
-        false
+        #quserのエラーはrubyの例外を発生させず例外処理ではリカバーできないことが判明したため
+        #この段階で第２次の判断を入れることとした（2020.3）。  
+        is_running_rb
       end
     rescue
       #64bi版Windowsと32bit版Rubyの組合せでは quser はエラーになる。
