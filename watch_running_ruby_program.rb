@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #---------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.2.8 (2014.8.15)             #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.5 (2020.5.14)             #
 #                                                                                 #
 #                            常駐プログラム定期監視編                             #
 #                                                                                 #
@@ -17,15 +17,12 @@ Dir.chdir(__dir__)
 require "./process_count"
 
 #***** rubyプログラム非同期実行用メソッド *****
+
 def ruby_path
-  path=""
-  wmi = WIN32OLE.connect('winmgmts://')
-  process_set = wmi.ExecQuery("select * from Win32_Process where Name like 'ruby%'")
-  process_set.each do |item|
-    path=item.CommandLine.match(/[^"]*\.exe/)
-  end
-  path.to_s.encode("Shift_JIS")
+  require 'rbconfig'
+  ruby_path = RbConfig.ruby
 end
+
 def run(ruby_file)
   str="#{ruby_path} #{ruby_file}"
   wsh = WIN32OLE.new('WScript.Shell')
