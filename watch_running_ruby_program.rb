@@ -1,6 +1,6 @@
 # -*- coding: Windows-31J -*-
 #---------------------------------------------------------------------------------#
-#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.5 (2020.5.14)             #
+#   保土ケ谷区保険年金課 窓口混雑状況表示システム Ver.3.6 (2020.5.25)             #
 #                                                                                 #
 #                            常駐プログラム定期監視編                             #
 #                                                                                 #
@@ -21,6 +21,11 @@ require "./process_count"
 def ruby_path
   require 'rbconfig'
   ruby_path = RbConfig.ruby
+  if File.exist? ruby_path
+    ruby_path
+  else
+    ruby_path.sub("/bin","")
+  end
 end
 
 def run(ruby_file)
