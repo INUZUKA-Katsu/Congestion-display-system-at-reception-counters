@@ -140,8 +140,10 @@ class ConfigSet
     unless $gyomu.values.sort==mado_array
       ans << "「業務コードと窓口番号の対応($gyomu)」"
     end
-    unless AlertJoken.new($keikoku_joken).keys-mado_array==[]
-      ans << "「警告条件($keikoku_joken)」"
+    if defined? $keikoku_joken
+      unless AlertJoken.new($keikoku_joken).keys-mado_array==[]
+        ans << "「警告条件($keikoku_joken)」"
+      end
     end
     if defined? $jam_message
       mado=[]
