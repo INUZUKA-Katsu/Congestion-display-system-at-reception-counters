@@ -1766,6 +1766,15 @@ class RaichoList
     when String ; time = time_or_id
       hakken_id    = hakken_sya_just_before(time).id
       yobidashi_id = yobidashi_sya_just_before(time).id
+      #発券番号が３巡目に入ってしまった場合の特殊処理　2020/8/10
+      if is3rdround(hakken_id) and defined? $machisu_display_mode_on_3rdround
+        case $machisu_display_mode_on_3rdround
+        when :continue_showing_last_machisu
+          return last_machisu
+        when :show_estimate_machisu
+          return estimate_machisu(time)
+        end
+      end
     when Integer ; id   = time_or_id
     #特定の来庁者に着目した待ち人数の考え方
     #当該来庁者に発券した結果として、発券機の待ち人数の表示がx人になったとき
@@ -1863,6 +1872,61 @@ class RaichoList
   def next_machi_su
     self.next_call.machi_su
   end
+
+
+  #※※※※※※※※※※  番号が３巡目に入った場合の特殊対応 (2020/8/10)※※※※※※※※※
+  #　明光側の仕様で、番号の再使用が3巡目に入ると発券情報が記録されなくなることへの対応
+  #  (正確には、2順目の最後の番号も記録されない.)
+
+  #***  番号が３巡目に入っているかどうか ***
+  def is3rdround(id=nil)
+    mini=$bango[self.mado].mini
+    max =$bango[self.mado].max
+    kirokukano_su = (max-mini+1)*2-1
+    if id
+      id>=kirokukano_su
+    else
+      self.size>=kirokukano_su
+    end
+  end
+  #***  判明している直近の待ち人数  ***
+  def last_machisu
+    self[self.last_hakken_id].machi_su
+  end
+  #*** 発券記録のある直近１時間における１分間平均発券数 ***
+  def average_hakkensu_in_the_last_hour
+    end_time = last_hakken_time
+    end_id   = last_hakken_id
+    sya      = self.select{|sya| sya.time(:hakken)<=(end_time-1.hour)}[-1]
+    start_time = sya.time(:hakken)
+    start_id   = sya.id
+    average_by_minute = (end_id - start_id).to_f / (end_time - start_time)
+  end
+  #*** 平均発券数が1時間で半減すると仮定して発券数を推計する. ***  
+  def estimate_hakkensu_after_last_hakken_kiroku(time=TimeNow)
+    period = time - last_hakken_time
+    if period < 60
+      ( period * average_hakkensu_in_the_last_hour / 2 ).round
+    else
+      ( ( 60 * average_hakkensu_in_the_last_hour / 2 ) +
+        ( (period - 60) * average_hakkensu_in_the_last_hour / 4 ) ).round
+    end
+  end
+  def yobidashisu_after_last_hakken_kiroku(time=TimeNow)
+    self.select{|sya| 
+      sya.time(:yobidashi) and 
+      sya.time(:yobidashi)>last_hakken_time and
+      sya.time(:yobidashi)<=time
+    }.size
+  end
+  #*** 待ち人数の推計値 ***
+  def estimate_machisu(time=TimeNow)
+    last_machisu - 
+    yobidashisu_after_last_hakken_kiroku(time) + 
+    estimate_hakkensu_after_last_hakken_kiroku(time)
+  end
+
+
   #※※※※※※※※※※  時刻、時間を調べる ※※※※※※※※※
 
   #*** 来庁者オブジェクトに記録された最終(発券/呼出/キャンセル)時刻 ***
