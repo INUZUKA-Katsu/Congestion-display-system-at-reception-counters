@@ -27,7 +27,7 @@ end
 
 #*** mado_FTP.rb‚ğŒJ‚è•Ô‚µÀs ****
 require "./Objectinitialize.rb"
-interval_second=60
+interval_second=10
 loop do
   load "./mado_FTP.rb"
   Time.loop_count
