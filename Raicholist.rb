@@ -1904,12 +1904,16 @@ class RaichoList
   end
   #*** •½‹Ï”­Œ””‚ª1ŠÔ‚Å”¼Œ¸‚·‚é‚Æ‰¼’è‚µ‚Ä”­Œ””‚ğ„Œv‚·‚é. ***  
   def estimate_hakkensu_after_last_hakken_kiroku(time=TimeNow)
-    period = time - last_hakken_time
-    if period < 60
-      ( period * average_hakkensu_in_the_last_hour / 2 ).round
+    if time <= "17:00"
+      period = time - last_hakken_time
     else
-      ( ( 60 * average_hakkensu_in_the_last_hour / 2 ) +
-        ( (period - 60) * average_hakkensu_in_the_last_hour / 4 ) ).round
+      period = "17:00" - last_hakken_time
+    end
+    if period < 60
+      ( period * average_hakkensu_in_the_last_hour * $hakken_speed_within_1hour ).round
+    else
+      ( ( 60 * average_hakkensu_in_the_last_hour * $hakken_speed_within_1hour ) +
+        ( (period - 60) * average_hakkensu_in_the_last_hour * $hakken_speed_after_1hour ) ).round
     end
   end
   def yobidashisu_after_last_hakken_kiroku(time=TimeNow)
