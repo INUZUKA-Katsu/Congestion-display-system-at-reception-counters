@@ -31,21 +31,35 @@ if machi_su
     ans = popup(mess,3)
 
     if ans==6
-        str=""
+        str = ""
+        res = :unmatch
         File.open(Myfile.file[:log],"r") do |f|
             f.flock(File::LOCK_EX)
             str = f.read.sub( data+"\n", "" )
+            res = :done if $&
             f.flock(File::LOCK_UN)
         end
-        File.open(Myfile.file[:log],"w") do |f|
-            f.flock(File::LOCK_EX)
-            f.puts str
-            f.flock(File::LOCK_UN)
+        if res == :done
+            File.open(Myfile.file[:log],"w") do |f|
+                f.flock(File::LOCK_EX)
+                f.puts str
+                f.flock(File::LOCK_UN)
+            end
+            File.open(add_log,"w") do |f|
+                f.puts added_log_ary.join("\n")
+            end
+            popup("取消しました。",0,"完了",10)
+        else
+            mess = "消去するデータがログファイル(Prolog.csv)の中にありませんでした。\n" +
+                   "手動入力による該当入力記録を抹消しますか？"
+            ans  = popup(mess,4,"未完了",10)
+            if ans == 6
+                File.open(add_log,"w") do |f|
+                    f.puts added_log_ary.join("\n")
+                end
+                popup("手動による該当入力記録を抹消しました。",0,"完了",10)
+            end
         end
-        File.open(add_log,"w") do |f|
-            f.puts added_log_ary.join("\n")
-        end
-        popup("取消しました。",0,"完了",10)
     end
 else
     mess = %Q|手動で設定された待ち人数の記録はありません。|
