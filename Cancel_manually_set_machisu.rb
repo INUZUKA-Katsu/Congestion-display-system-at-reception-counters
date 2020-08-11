@@ -8,6 +8,7 @@ mado="13"
 #**** 手動データ追加ログファイル ****
 add_log = "./added_by_manual.log"
 
+TimeNow = "18:00"
 $logs=RaichoList.setup(Myfile.file[:log],$mado_array)
 
 def get_machi_su(add_log,mado)
