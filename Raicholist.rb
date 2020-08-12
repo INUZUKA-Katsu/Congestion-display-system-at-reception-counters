@@ -759,7 +759,7 @@ class Time
     if $datetime and test_mode?(2,3,4,5,9)
       if defined? $advance_minutes_by_step and $advance_minutes_by_step>0
         add_minute = $advance_minutes_by_step.minute * @@count
-        return parse($datetime) + add_minute 
+        return real_now - @@jisa + add_minute 
       else
         return real_now - @@jisa
       end
