@@ -8,9 +8,12 @@ mado="13"
 #**** 手動データ追加ログファイル ****
 add_log = "./added_by_manual.log"
 
+#*** 現在時 ***
+TimeNow =Time.now.strftime("%H:%M")
+
 def data_sort(log)
     str=File.read(log)
-    p str
+    #p str
     if str
         sorted = str.split("\n").sort.join("\n")
         File.open(log,"w") do |s|
@@ -60,7 +63,6 @@ loop{
 }
 
 if ans==6
-    TimeNow =Time.nowb.strftime("%H:%M") if String.const_defined?(:TimeNow)==false or Object.class_eval{remove_const :TimeNow}
     $logs=RaichoList.setup(Myfile.file[:log],$mado_array)
     last_sya = $logs[mado].yobidashi_sya_just_before
     cancel_su = $logs[mado].select{|sya| sya.time(:cancel) and sya.id > last_sya.id}.size
@@ -78,7 +80,7 @@ if ans==6
 
     data = [ Today, TimeNow, "0", $gyomu.key(mado), hakken_bango ].join(",")
     [Myfile.file[:log],add_log].each do |log|
-        p log
+        #p log
         File.open(log,"a") do |f|
             f.flock(File::LOCK_EX)
             f.puts data
