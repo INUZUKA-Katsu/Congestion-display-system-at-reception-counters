@@ -1889,44 +1889,72 @@ class RaichoList
     end
   end
   #***  判明している直近の待ち人数  ***
-  def last_machisu
-    self[self.last_hakken_id].machi_su
+  def last_machisu(time=TimeNow)
+    self.select{|sya| sya.time(:hakken) and sya.time(:hakken)<=time }[-1].machi_su
   end
-  #*** 発券記録のある直近１時間における１分間平均発券数 ***
-  def average_hakkensu_in_the_last_hour
+  #*** 発券記録のある直近１時間の始点と終点 ***
+  def hakken_record_time_in_the_last_hour
     end_time = last_hakken_time
-    end_id   = last_hakken_id
-    sya      = self.select{|sya| sya.time(:hakken)<=(end_time-1.hour)}[-1]
-    start_time = sya.time(:hakken)
-    start_id   = sya.id
-    average_by_minute = (end_id - start_id).to_f / (end_time - start_time)
+    start_time = self.select{|sya| sya.time(:hakken)<=(end_time-1.hour)}[-1].time(:hakken)
+    [start_time, end_time]
   end
-  #*** 平均発券数が1時間で半減すると仮定して発券数を推計する. ***  
+  #*** 発券記録のある2時点間における発券数 ***
+  def hakkensu_between(start_time,end_time)
+    end_id   = self.find{|sya| sya.time(:hakken)==end_time}.id
+    start_id = self.find{|sya| sya.time(:hakken)==start_time}.id
+    end_id - start_id + 1
+  end
+  #*** 毎分の発券数比を3時30分までは$period1、4時30分までは$period2、5時までは$period3と仮定して発券数を推計する. ***  
   def estimate_hakkensu_after_last_hakken_kiroku(time=TimeNow)
-    if time <= "17:00"
-      period = time - last_hakken_time
-    else
-      period = "17:00" - last_hakken_time
+    def natural(num)
+      num > 0 ? num : 0
     end
-    if period < 60
-      ( period * average_hakkensu_in_the_last_hour * $hakken_speed_within_1hour ).round
-    else
-      ( ( 60 * average_hakkensu_in_the_last_hour * $hakken_speed_within_1hour ) +
-        ( (period - 60) * average_hakkensu_in_the_last_hour * $hakken_speed_after_1hour ) ).round
+    def area(time1,time2)
+      natural(["15:30",time2].min - time1 ) * $period1 +
+      natural(["16:30",time2].min - ["15:30",time1].max) * $period2 +
+      natural(["17:30",time2].min - ["16:30",time1].max) * $period3
+    end
+    time = "17:00" if time > "17:00"
+    lt   = last_hakken_time
+    if lt==time     #手入力で発券記録を外挿してすぐに現在の状況を表示するときや手入力で外挿した発券記録を取り消すとき
+      0
+    elsif lt < time #一般的なケース
+      time1,time2 = hakken_record_time_in_the_last_hour
+      su1   = hakkensu_between(time1,time2)
+      area1 = area(time1, time2)
+      area2 = area(lt, time)
+      ( su1 * area2 / area1 ).round
+    else #手入力で発券記録を外挿した場合であって、最終の外挿発券記録より前の時点の待ち人数を推計するとき
+      sya1  = self.select{|sya| sya.time(:hakken)<=time}.max_by{|sya| sya.id}
+      sya2  = self.select{|sya| sya.time(:hakken)>time}.min_by{|sya| sya.id}
+      time1 = sya1.time(:hakken)
+      time2 = sya2.time(:hakken)
+      su1   = hakkensu_between(time1,time2)
+      area1 = area(time1, time2)
+      area2 = area(time1, time)
+      ( su1 * area2 / area1 ).round
     end
   end
   def yobidashisu_after_last_hakken_kiroku(time=TimeNow)
-    self.select{|sya| 
+    last_hakken = self.select{|sya| sya.time(:hakken) and sya.time(:hakken)<=time}[-1]
+    y=self.select{|sya| 
       sya.time(:yobidashi) and 
-      sya.time(:yobidashi)>last_hakken_time and
+      sya.time(:yobidashi)>last_hakken.time(:hakken) and
       sya.time(:yobidashi)<=time
     }.size
+    c=self.select{|sya| 
+      sya.time(:cancel) and 
+      sya.time(:cancel)>last_hakken.time(:hakken) and
+      sya.time(:cancel)<=time
+    }.size
+    y + c
   end
   #*** 待ち人数の推計値 ***
   def estimate_machisu(time=TimeNow)
-    last_machisu - 
-    yobidashisu_after_last_hakken_kiroku(time) + 
-    estimate_hakkensu_after_last_hakken_kiroku(time)
+    su = last_machisu(time) - 
+        yobidashisu_after_last_hakken_kiroku(time) + 
+        estimate_hakkensu_after_last_hakken_kiroku(time)
+    natural(su)
   end
 
 
