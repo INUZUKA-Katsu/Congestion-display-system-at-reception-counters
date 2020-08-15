@@ -1892,12 +1892,24 @@ class RaichoList
   def last_machisu(time=TimeNow)
     self.select{|sya| sya.time(:hakken) and sya.time(:hakken)<=time }[-1].machi_su
   end
-  #*** ”­Œ”‹L˜^‚Ì‚ ‚é’¼‹ß‚PŽžŠÔ‚ÌŽn“_‚ÆI“_ ***
+  #*** ”­Œ”‹L˜^‚Ì‚ ‚é’¼‹ß‚PŽžŠÔ‚ÌŽn“_‚ÆI“_(’‹‹x‚ÝŽžŠÔ‘Ñ‚Í‚Í‚¸‚·.) ***
   def hakken_record_time_in_the_last_hour
-    end_time = last_hakken_time
-    start_time = self.select{|sya| sya.time(:hakken)<=(end_time-1.hour)}[-1].time(:hakken)
+    hakken_time = self.map{|sya| sya.time(:hakken)}-[nil]
+    #p hakken_time
+    case last_hakken_time
+    when "14:10".."18:00"
+      end_time = last_hakken_time
+      start_time = hakken_time.select{|t| t<=(end_time-1.hour)}.max
+    when "13:30".."14:10"
+      end_time = last_hakken_time
+      start_time = hakken_time.select{|t| t>="13:00"}.min
+    when "09:00".."13:30"
+      end_time = hakken_time.select{|t| t<="12:00"}.max
+      start_time = hakken_time.select{|t| t<=(end_time-1.hour)}.max
+    end
     [start_time, end_time]
   end
+
   #*** ”­Œ”‹L˜^‚Ì‚ ‚é2Žž“_ŠÔ‚É‚¨‚¯‚é”­Œ”” ***
   def hakkensu_between(start_time,end_time)
     end_id   = self.find{|sya| sya.time(:hakken)==end_time}.id
