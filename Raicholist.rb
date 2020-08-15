@@ -754,7 +754,7 @@ class Time
   #$test_mode=2,3,4,5,9‚Ìê‡‚ÌŒ»İ
   class << Time; alias real_now now; end
   @@count||= 0
-  @@jisa ||= real_now - parse($datetime)
+  @@jisa ||= real_now - parse($datetime) if $datetime
   def self.now
     if $datetime and test_mode?(2,3,4,5,9)
       if defined? $advance_minutes_by_step and $advance_minutes_by_step>0
