@@ -10,13 +10,15 @@ http://cgi.city.yokohama.lg.jp/hodogaya/hokennenkin/mado-jokyo-suii-hun.html
 必要条件    
 現在のところ、連携できる発券機は明光商会（株）のボイスコールProに限定されています。
 ボイスコールProのオプションであるモニタシステムをインストールし、ボイスコールProと接続したウインドウズPC上で動作します。
+他社製品や明光商会（株）の他機種でもログファイルを利用できるようにしてもらえれば連携可能です。
 
 主要なプログラムファイル  
 mado_FTP.rb  
 Raicholist.rb   
 Suii.rb（今週/先週の混雑状況）  
 
-設定ファイル
+設定ファイル  
 config.txt
 
-
+ライセンス  
+MIT License
